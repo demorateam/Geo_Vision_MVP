@@ -1,0 +1,26 @@
+{
+  "name": "سامانه مدیریت رخداد شهری مبتنی بر هوش مصنوعی",
+  "short_name": "رخداد شهری",
+  "description": "سامانه هوشمند مدیریت رخدادهای شهری با تحلیل هوش مصنوعی",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
+  "dir": "rtl",
+  "lang": "fa",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
