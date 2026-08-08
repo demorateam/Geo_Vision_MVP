@@ -41,15 +41,15 @@ export default function Home() {
           <p className="mt-6 text-base text-muted-foreground md:text-lg">
             شهروندان رخدادهای شهری را گزارش می‌دهند، هوش مصنوعی به‌طور خودکار نوع، شدت و سازمان مسئول را تشخیص می‌دهد و مدیران روند رسیدگی را پیگیری می‌کنند.
           </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link href="/register">
-              <Button size="lg" className="gap-2">
+              <Button size="lg" className="gap-2 h-14 px-8 text-base md:h-16 md:px-10 md:text-lg">
                 ثبت رخداد جدید
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
             <Link href="/login">
-              <Button size="lg" variant="outline">ورود به پنل مدیریت</Button>
+              <Button size="lg" variant="outline" className="h-14 px-8 text-base md:h-16 md:px-10 md:text-lg">ورود به پنل مدیریت</Button>
             </Link>
           </div>
         </div>
