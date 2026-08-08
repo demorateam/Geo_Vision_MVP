@@ -45,3 +45,4 @@ dist/
 coverage/
 
 *.log
+/public/uploads/
