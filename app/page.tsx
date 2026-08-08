@@ -33,28 +33,27 @@ export default function Home() {
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        {/* Animated signature background: city grid + radar sweep + live incident pings */}
-        <HeroBackground />
-
-        <div className="container relative z-10 mx-auto px-4 py-16 md:py-24">
-          <div className="mx-auto max-w-3xl animate-fade-in text-center">
-            <Badge variant="secondary" className="mb-4 gap-2 pr-3">
+        <div className="container relative mx-auto px-4 py-16 md:py-24">
+          <div className="relative mx-auto max-w-3xl animate-fade-in text-center">
+            {/* Animated signature background: city grid + live incident pings, scoped to just this block */}
+            <HeroBackground />
+            <Badge variant="secondary" className="relative z-10 mb-4 gap-2 pr-3">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-500 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-500" />
               </span>
               پایش زنده و هوشمند رخدادهای شهری
             </Badge>
-            <h1 className="text-3xl font-bold leading-tight md:text-5xl">
+            <h1 className="relative z-10 text-3xl font-bold leading-tight md:text-5xl">
               گزارش رخدادهای شهری،
               <span className="block bg-gradient-to-l from-indigo-600 to-cyan-500 bg-clip-text text-transparent">
                 تحلیل فوری با هوش مصنوعی
               </span>
             </h1>
-            <p className="mt-6 text-base text-muted-foreground md:text-lg">
+            <p className="relative z-10 mt-6 text-base text-muted-foreground md:text-lg">
               شهروندان رخدادهای شهری را گزارش می‌دهند، هوش مصنوعی به‌طور خودکار نوع، شدت و سازمان مسئول را تشخیص می‌دهد و مدیران روند رسیدگی را پیگیری می‌کنند.
             </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <div className="relative z-10 mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link href="/register">
                 <Button size="lg" className="gap-2">
                   ثبت رخداد جدید
