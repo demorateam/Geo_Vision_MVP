@@ -82,15 +82,17 @@ export default async function OrganizationPage({ params }: { params: { slug: str
                     </span>
                     <span className="font-mono">{inc.id.slice(0, 6)}</span>
                   </div>
-                  <p className="text-sm font-medium line-clamp-2">{inc.description}</p>
+                  <p className="text-sm font-semibold">{inc.incidentType}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-3">
+                    {inc.aiSummary || 'تحلیلی ثبت نشده'}
+                  </p>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <MapPin className="h-3 w-3" />
-                    <span>
-                      {inc.latitude && inc.longitude
-                        ? `${inc.latitude.toFixed(4)}, ${inc.longitude.toFixed(4)}`
-                        : '—'}
-                    </span>
+                    <span>{inc.region || '—'}</span>
                   </div>
+                  <p className="text-[11px] text-gray-400 line-clamp-2 pt-1 border-t">
+                    {inc.description}
+                  </p>
                 </div>
               </div>
             ))}
