@@ -15,6 +15,7 @@ import {
   X,
   Building2,
   User as UserIcon,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ interface NavItem {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   roles: SessionUser["role"][];
+  children?: { href: string; label: string }[];
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -34,6 +36,23 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/my-reports", label: "گزارش‌های من", icon: ListChecks, roles: ["CITIZEN"] },
   { href: "/admin/incidents", label: "مدیریت رخدادها", icon: ListChecks, roles: ["ADMIN"] },
   { href: "/admin/map", label: "نقشه رخدادها", icon: Map, roles: ["ADMIN"] },
+  {
+    href: "/admin/organizations",
+    label: "سازمان‌ها",
+    icon: Building2,
+    roles: ["ADMIN"],
+    children: [
+      { href: "/admin/organizations/municipality", label: "شهرداری" },
+    { href: "/admin/organizations/security", label: "نهادهای امنیتی" },
+    { href: "/admin/organizations/telecom", label: "مخابرات" },
+    { href: "/admin/organizations/water", label: "اداره آب و فاضلاب" },
+    { href: "/admin/organizations/electricity", label: "اداره برق" },
+    { href: "/admin/organizations/gas", label: "اداره گاز" },
+    { href: "/admin/organizations/emergency", label: "اورژانس" },
+    { href: "/admin/organizations/police", label: "پلیس" },
+    { href: "/admin/organizations/fire", label: "آتش نشانی" },
+    ],
+  },
   { href: "/agency/incidents", label: "رخدادهای محول شده", icon: Building2, roles: ["AGENCY"] },
 ];
 
@@ -47,9 +66,16 @@ export function DashboardShell({
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const items = NAV_ITEMS.filter((item) => item.roles.includes(user.role));
   const roleLabel = user.role === "ADMIN" ? "مدیر سیستم" : user.role === "AGENCY" ? `اپراتور ${user.agency ?? ""}` : "شهروند";
+
+  const toggleExpand = (href: string) => {
+    setExpandedItems((prev) =>
+      prev.includes(href) ? prev.filter((h) => h !== href) : [...prev, href]
+    );
+  };
 
   const handleLogout = async () => {
     await fetch("/api/auth", { method: "DELETE" });
@@ -60,7 +86,6 @@ export function DashboardShell({
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      {/* Sidebar - desktop */}
       <aside
         className={cn(
           "fixed inset-y-0 right-0 z-40 w-64 transform border-l bg-white transition-transform duration-200 lg:static lg:translate-x-0",
@@ -82,6 +107,43 @@ export function DashboardShell({
         <nav className="space-y-1 p-3">
           {items.map((item) => {
             const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+            const isExpanded = expandedItems.includes(item.href);
+
+            if (item.children) {
+              return (
+                <div key={item.href}>
+                  <button
+                    onClick={() => toggleExpand(item.href)}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                      active ? "bg-blue-50 font-medium text-blue-700" : "text-muted-foreground hover:bg-slate-50 hover:text-foreground",
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span className="flex-1 text-right">{item.label}</span>
+                    <ChevronDown className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-180")} />
+                  </button>
+                  {isExpanded && (
+                    <div className="mr-7 mt-1 space-y-1 border-r pr-3">
+                      {item.children.map((child) => (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          onClick={() => setSidebarOpen(false)}
+                          className={cn(
+                            "block rounded-lg px-3 py-2 text-sm transition-colors",
+                            pathname === child.href ? "bg-blue-50 font-medium text-blue-700" : "text-muted-foreground hover:bg-slate-50 hover:text-foreground",
+                          )}
+                        >
+                          {child.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             return (
               <Link
                 key={item.href}
@@ -120,9 +182,7 @@ export function DashboardShell({
         <div className="fixed inset-0 z-30 bg-black/30 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Main content */}
       <div className="flex flex-1 flex-col lg:pr-0">
-        {/* Mobile header */}
         <header className="flex h-16 items-center justify-between border-b bg-white px-4 lg:hidden">
           <button onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5" />

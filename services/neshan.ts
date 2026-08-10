@@ -20,6 +20,7 @@ export interface NeshanSearchResponse {
 
 export async function neshanSearch(term: string, lat?: number, lng?: number): Promise<NeshanSearchResponse> {
   const apiKey = getApiKey();
+  if (!apiKey || apiKey.startsWith("your_")) return mockSearch(term);
   const params = new URLSearchParams({ term });
   if (lat !== undefined && lng !== undefined) {
     params.set("lat", String(lat));
@@ -29,6 +30,8 @@ export async function neshanSearch(term: string, lat?: number, lng?: number): Pr
   try {
     const res = await fetch(`${NESHAN_BASE}/v1/search?${params.toString()}`, {
       headers: { "Api-Key": apiKey },
+      cache: "no-store",
+      signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) throw new Error(`Neshan search failed: ${res.status}`);
     return (await res.json()) as NeshanSearchResponse;
@@ -50,9 +53,12 @@ export interface NeshanReverseResponse {
 
 export async function neshanReverseGeocode(lat: number, lng: number): Promise<NeshanReverseResponse> {
   const apiKey = getApiKey();
+  if (!apiKey || apiKey.startsWith("your_")) return mockReverse(lat, lng);
   try {
     const res = await fetch(`${NESHAN_BASE}/v5/reverse?lat=${lat}&lng=${lng}`, {
       headers: { "Api-Key": apiKey },
+      cache: "no-store",
+      signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) throw new Error(`Neshan reverse failed: ${res.status}`);
     return (await res.json()) as NeshanReverseResponse;
@@ -72,31 +78,31 @@ function mockSearch(term: string): NeshanSearchResponse {
   const items: NeshanSearchItem[] = [
     {
       title: `${term} - میدان آزادی`,
-      location: { x: 35.7248, y: 51.3235 },
+      location: { x: 51.3235, y: 35.7248 },
       neighbourhood: "آزادی",
       address: "تهران، میدان آزادی",
     },
     {
       title: `${term} - میدان ولیعصر`,
-      location: { x: 35.7117, y: 51.4082 },
+      location: { x: 51.4082, y: 35.7117 },
       neighbourhood: "ولیعصر",
       address: "تهران، میدان ولیعصر",
     },
     {
       title: `${term} - میدان انقلاب`,
-      location: { x: 35.7009, y: 51.3915 },
+      location: { x: 51.3915, y: 35.7009 },
       neighbourhood: "انقلاب",
       address: "تهران، میدان انقلاب",
     },
     {
       title: `${term} - میدان تجریش`,
-      location: { x: 35.8042, y: 51.4344 },
+      location: { x: 51.4344, y: 35.8042 },
       neighbourhood: "تجریش",
       address: "تهران، میدان تجریش",
     },
     {
       title: `${term} - میدان امام حسین`,
-      location: { x: 35.7011, y: 51.4381 },
+      location: { x: 51.4381, y: 35.7011 },
       neighbourhood: "امام حسین",
       address: "تهران، میدان امام حسین",
     },

@@ -11,7 +11,7 @@ const Schema = z.object({
 
 export async function GET(req: Request) {
   try {
-    requireAuth();
+    await requireAuth();
     const { searchParams } = new URL(req.url);
     const term = searchParams.get("term") ?? "";
     const lat = searchParams.get("lat") ? Number(searchParams.get("lat")) : undefined;

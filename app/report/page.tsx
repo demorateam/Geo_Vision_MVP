@@ -5,8 +5,8 @@ import { IncidentReportForm } from "@/components/forms/IncidentReportForm";
 
 export const dynamic = "force-dynamic";
 
-export default function ReportPage() {
-  const session = getSession();
+export default async function ReportPage() {
+  const session = await getSession();
   if (!session) redirect("/login?redirect=/report");
 
   return (

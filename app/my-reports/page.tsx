@@ -7,7 +7,7 @@ import { MyReportsList } from "@/components/dashboard/MyReportsList";
 export const dynamic = "force-dynamic";
 
 export default async function MyReportsPage() {
-  const session = getSession();
+  const session = await getSession();
   if (!session) redirect("/login?redirect=/my-reports");
 
   const incidents = await prisma.incident.findMany({

@@ -9,7 +9,7 @@ import { AgencyDashboard } from "@/components/dashboard/AgencyDashboard";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const session = getSession();
+  const session = await getSession();
   if (!session) redirect("/login");
 
   if (session.role === "ADMIN") {

@@ -27,6 +27,7 @@ interface Incident {
 type SortKey = "incidentNumber" | "createdAt" | "severity" | "region";
 
 export function IncidentsTable({ incidents }: { incidents: Incident[] }) {
+  const [rows, setRows] = useState(incidents);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [severityFilter, setSeverityFilter] = useState<string>("ALL");
@@ -35,7 +36,7 @@ export function IncidentsTable({ incidents }: { incidents: Incident[] }) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    let result = [...incidents];
+    let result = [...rows];
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(
@@ -59,7 +60,7 @@ export function IncidentsTable({ incidents }: { incidents: Incident[] }) {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return result;
-  }, [incidents, search, statusFilter, severityFilter, sortKey, sortDir]);
+  }, [rows, search, statusFilter, severityFilter, sortKey, sortDir]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -77,9 +78,9 @@ export function IncidentsTable({ incidents }: { incidents: Incident[] }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       toast.success("وضعیت رخداد به‌روزرسانی شد");
-      // Update local state
-      const idx = incidents.findIndex((i) => i.id === id);
-      if (idx >= 0) incidents[idx] = { ...incidents[idx], status };
+      setRows((current) => current.map((incident) =>
+        incident.id === id ? { ...incident, status } : incident,
+      ));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "خطا در به‌روزرسانی");
     } finally {
