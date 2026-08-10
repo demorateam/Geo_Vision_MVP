@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,9 +21,20 @@ const RequestSchema = z.object({
 type RequestValues = z.infer<typeof RequestSchema>;
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100" />}>
+      <LoginContent />
+    </Suspense>
+  );
+}
+
+function LoginContent() {
   const router = useRouter();
   const params = useSearchParams();
-  const redirect = params.get("redirect") || "/dashboard";
+  const requestedRedirect = params.get("redirect");
+  const redirect = requestedRedirect?.startsWith("/") && !requestedRedirect.startsWith("//")
+    ? requestedRedirect
+    : "/dashboard";
   const [step, setStep] = useState<"request" | "verify">("request");
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
@@ -49,8 +60,8 @@ export default function LoginPage() {
       setPhone(data.phone);
       setName(data.name);
       setStep("verify");
-      toast.success(`کد تایید: ${result.otp}`, {
-        description: "کد تایید (شبیه‌سازی پیامک) برای ورود وارد کنید",
+      toast.success(result.demoOtp ? `کد آزمایشی: ${result.demoOtp}` : result.message, {
+        description: result.demoOtp ? "این کد فقط برای نسخه MVP نمایش داده می‌شود" : "کد پیامک‌شده را وارد کنید",
         duration: 8000,
       });
     } catch (e) {

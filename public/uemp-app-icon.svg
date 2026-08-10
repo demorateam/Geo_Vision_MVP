@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">UEMP application icon</title>
+  <desc id="desc">A smart city location marker containing a security shield and connected data nodes.</desc>
+
+  <defs>
+    <radialGradient id="background" cx="50%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#123264" />
+      <stop offset="55%" stop-color="#081a36" />
+      <stop offset="100%" stop-color="#061126" />
+    </radialGradient>
+
+    <linearGradient id="marker" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="48%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#4f46e5" />
+    </linearGradient>
+
+    <linearGradient id="shield" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#102b55" />
+      <stop offset="100%" stop-color="#061126" />
+    </linearGradient>
+
+    <filter id="markerGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="14" result="blur" />
+      <feColorMatrix
+        in="blur"
+        type="matrix"
+        values="0 0 0 0 0.145
+                0 0 0 0 0.388
+                0 0 0 0 0.922
+                0 0 0 0.6 0"
+      />
+      <feMerge>
+        <feMergeNode />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#background)" />
+
+  <g fill="none" stroke="#60a5fa" stroke-width="2" opacity="0.16">
+    <path d="M-22 182 C88 94 145 164 224 119 S388 96 542 178" />
+    <path d="M-18 344 C82 268 151 380 238 322 S404 254 540 324" />
+    <path d="M72 530 C96 412 154 404 192 329" />
+    <path d="M430 -18 C396 82 365 109 326 158" />
+  </g>
+
+  <g fill="#67e8f9" opacity="0.5">
+    <circle cx="82" cy="145" r="5" />
+    <circle cx="126" cy="326" r="4" />
+    <circle cx="407" cy="127" r="4" />
+    <circle cx="438" cy="307" r="5" />
+  </g>
+
+  <g fill="none" stroke="#818cf8" opacity="0.24">
+    <circle cx="82" cy="145" r="15" />
+    <circle cx="438" cy="307" r="17" />
+  </g>
+
+  <path
+    d="M256 78 C165 78 105 139 105 226 C105 340 256 438 256 438 C256 438 407 340 407 226 C407 139 347 78 256 78 Z"
+    fill="url(#marker)"
+    stroke="#7dd3fc"
+    stroke-width="5"
+    filter="url(#markerGlow)"
+  />
+
+  <path
+    d="M256 144 L329 173 V232 C329 287 299 324 256 345 C213 324 183 287 183 232 V173 Z"
+    fill="url(#shield)"
+    stroke="#e0f2fe"
+    stroke-width="7"
+    stroke-linejoin="round"
+  />
+
+  <g fill="none" stroke="#e0f2fe" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M218 228 L256 203 L295 228" />
+    <path d="M218 228 L256 270 L295 228" />
+    <path d="M256 203 V270" />
+  </g>
+
+  <g stroke="#061126" stroke-width="5">
+    <circle cx="256" cy="203" r="13" fill="#67e8f9" />
+    <circle cx="218" cy="228" r="13" fill="#f8fafc" />
+    <circle cx="295" cy="228" r="13" fill="#f8fafc" />
+    <circle cx="256" cy="270" r="13" fill="#a78bfa" />
+  </g>
+
+  <circle cx="256" cy="226" r="174" fill="none" stroke="#ffffff" stroke-width="2" stroke-dasharray="7 15" opacity="0.12" />
+</svg>

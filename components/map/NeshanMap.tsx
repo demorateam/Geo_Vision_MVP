@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import type { Marker as LeafletMarker } from "leaflet";
@@ -46,13 +46,14 @@ function coloredIcon(color: string) {
 
 async function searchAddress(query: string): Promise<{ lat: number; lng: number; label: string }[]> {
   try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&accept-language=fa&limit=5`,
-      { headers: { Accept: "application/json" } },
-    );
+    const res = await fetch(`/api/search-location?term=${encodeURIComponent(query)}`);
     if (!res.ok) return [];
     const data = await res.json();
-    return data.map((d: any) => ({ lat: parseFloat(d.lat), lng: parseFloat(d.lon), label: d.display_name }));
+    return (data.items ?? []).map((item: { title?: string; address?: string; location: { x: number; y: number } }) => ({
+      lat: item.location.y,
+      lng: item.location.x,
+      label: item.address || item.title || "نتیجه جستجو",
+    }));
   } catch {
     return [];
   }
@@ -76,15 +77,17 @@ export function NeshanMap({
   focusId = null,
   onMarkerClick,
 }: NeshanMapProps) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<{ lat: number; lng: number; label: string }[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchTarget, setSearchTarget] = useState<LatLng | null>(null);
-  const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const markerRefs = useRef<Record<string, LeafletMarker | null>>({});
-
-  useEffect(() => setMounted(true), []);
 
   // Fly to + open popup when focusId changes (e.g. clicked from an external list)
   useEffect(() => {
@@ -147,9 +150,9 @@ export function NeshanMap({
           </div>
           {searchResults.length > 0 && (
             <div className="absolute z-[1000] mt-1 w-full rounded-lg border bg-white shadow-lg">
-              {searchResults.map((r, i) => (
+              {searchResults.map((r) => (
                 <button
-                  key={i}
+                  key={`${r.lat}-${r.lng}-${r.label}`}
                   type="button"
                   onClick={() => handleSelectResult(r)}
                   className="block w-full truncate border-b p-2 text-right text-sm last:border-b-0 hover:bg-slate-50"

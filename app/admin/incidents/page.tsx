@@ -7,7 +7,7 @@ import { IncidentsTable } from "@/components/dashboard/IncidentsTable";
 export const dynamic = "force-dynamic";
 
 export default async function AdminIncidentsPage() {
-  const session = getSession();
+  const session = await getSession();
   if (!session || session.role !== "ADMIN") redirect("/dashboard");
 
   const incidents = await prisma.incident.findMany({

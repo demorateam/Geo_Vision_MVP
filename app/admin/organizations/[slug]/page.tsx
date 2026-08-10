@@ -28,22 +28,24 @@ const STATUS_COLOR: Record<string, string> = {
   RESOLVED: 'bg-green-100 text-green-700',
 }
  
-const PRIORITY_COLOR: Record<string, string> = {
-  LOW: 'bg-gray-100 text-gray-600',
-  MEDIUM: 'bg-yellow-100 text-yellow-800',
-  HIGH: 'bg-red-100 text-red-700',
-  CRITICAL: 'bg-pink-200 text-pink-800',
+const SEVERITY_COLOR: Record<string, string> = {
+  Low: 'bg-gray-100 text-gray-600',
+  Medium: 'bg-yellow-100 text-yellow-800',
+  High: 'bg-red-100 text-red-700',
+  Critical: 'bg-pink-200 text-pink-800',
 }
  
-const PRIORITY: Record<string, string> = {
-  LOW: 'کم', MEDIUM: 'متوسط', HIGH: 'زیاد', CRITICAL: 'بحرانی',
+const SEVERITY: Record<string, string> = {
+  Low: 'کم', Medium: 'متوسط', High: 'زیاد', Critical: 'بحرانی',
 }
  
-export default async function OrganizationPage({ params }: { params: { slug: string } }) {
-  const session = getSession()
+export default async function OrganizationPage({ params }: { params: Promise<{ slug: string }> }) {
+  const session = await getSession()
   if (!session) redirect('/login')
+  if (session.role !== 'ADMIN') redirect('/dashboard')
  
-  const agencyName = ORGANIZATION_MAP[params.slug]
+  const { slug } = await params
+  const agencyName = ORGANIZATION_MAP[slug]
   if (!agencyName) notFound()
  
   const incidents = await prisma.incident.findMany({
@@ -70,8 +72,8 @@ export default async function OrganizationPage({ params }: { params: { slug: str
                   <span className={`absolute top-2 right-2 text-xs px-2 py-0.5 rounded-full ${STATUS_COLOR[inc.status] ?? 'bg-gray-100 text-gray-600'}`}>
                     {STATUS[inc.status] ?? inc.status}
                   </span>
-                  <span className={`absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full ${PRIORITY_COLOR[inc.priority] ?? 'bg-gray-100 text-gray-600'}`}>
-                    {PRIORITY[inc.priority] ?? inc.priority}
+                  <span className={`absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full ${SEVERITY_COLOR[inc.severity] ?? 'bg-gray-100 text-gray-600'}`}>
+                    {SEVERITY[inc.severity] ?? inc.severity}
                   </span>
                 </div>
                 <div className="p-3 space-y-2">

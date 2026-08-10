@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateOtp, verifyOtp } from "@/lib/otp";
+import { generateOtp, isDemoOtpMode, verifyOtp } from "@/lib/otp";
 import { setSessionCookie } from "@/lib/auth";
 import { z } from "zod";
 import type { SessionUser } from "@/types";
@@ -23,7 +23,10 @@ export async function POST(req: Request) {
 
     if (action === "request") {
       const otp = generateOtp(phone);
-      return NextResponse.json({ message: "کد تایید ارسال شد", otp });
+      return NextResponse.json({
+        message: isDemoOtpMode() ? "کد آزمایشی ساخته شد" : "کد تایید ارسال شد",
+        demoOtp: isDemoOtpMode() ? otp : undefined,
+      });
     }
 
     // verify
@@ -57,6 +60,9 @@ export async function POST(req: Request) {
       user: { id: user.id, name: user.name, phone: user.phone, role: user.role, agency: user.agency },
     });
   } catch (e) {
+    if (e instanceof Error && e.message === "OTP_RATE_LIMIT") {
+      return NextResponse.json({ error: "لطفاً ۳۰ ثانیه تا درخواست کد بعدی صبر کنید" }, { status: 429 });
+    }
     const message = e instanceof Error ? e.message : "خطای سرور";
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -64,6 +70,6 @@ export async function POST(req: Request) {
 
 export async function DELETE() {
   const { clearSessionCookie } = await import("@/lib/auth");
-  clearSessionCookie();
+  await clearSessionCookie();
   return NextResponse.json({ message: "خروج موفقیت‌آمیز بود" });
 }

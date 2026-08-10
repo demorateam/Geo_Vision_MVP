@@ -34,31 +34,28 @@ interface LocationMapProps {
   onAddressResolve?: (address: string) => void;
 }
 
-// Reverse geocoding: coordinates -> human-readable address (free, via OSM Nominatim)
+// Geocoding is proxied through the application so provider keys stay on the server.
 async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
   try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=fa`,
-      { headers: { Accept: "application/json" } },
-    );
+    const res = await fetch(`/api/geocode?lat=${lat}&lng=${lng}`);
     if (!res.ok) return null;
     const data = await res.json();
-    return data?.display_name ?? null;
+    return data?.formatted_address ?? data?.address ?? null;
   } catch {
     return null;
   }
 }
 
-// Forward geocoding: address text -> coordinates (free, via OSM Nominatim)
 async function searchAddress(query: string): Promise<{ lat: number; lng: number; label: string }[]> {
   try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&accept-language=fa&limit=5`,
-      { headers: { Accept: "application/json" } },
-    );
+    const res = await fetch(`/api/search-location?term=${encodeURIComponent(query)}`);
     if (!res.ok) return [];
     const data = await res.json();
-    return data.map((d: any) => ({ lat: parseFloat(d.lat), lng: parseFloat(d.lon), label: d.display_name }));
+    return (data.items ?? []).map((item: { title?: string; address?: string; location: { x: number; y: number } }) => ({
+      lat: item.location.y,
+      lng: item.location.x,
+      label: item.address || item.title || "نتیجه جستجو",
+    }));
   } catch {
     return [];
   }
@@ -95,7 +92,7 @@ export function LocationMap({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<{ lat: number; lng: number; label: string }[]>([]);
   const [searching, setSearching] = useState(false);
-  const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const updatePosition = async (lat: number, lng: number) => {
     setPosition({ lat, lng });
@@ -161,9 +158,9 @@ export function LocationMap({
           </div>
           {searchResults.length > 0 && (
             <div className="absolute z-[1000] mt-1 w-full rounded-lg border bg-white shadow-lg">
-              {searchResults.map((r, i) => (
+              {searchResults.map((r) => (
                 <button
-                  key={i}
+                  key={`${r.lat}-${r.lng}-${r.label}`}
                   type="button"
                   onClick={() => handleSelectResult(r)}
                   className="block w-full truncate border-b p-2 text-right text-sm last:border-b-0 hover:bg-slate-50"

@@ -511,21 +511,21 @@ export default function Home() {
               {[
                 {
                   icon: MapPin,
-                  number: "01",
+                  number: "1",
                   title: "ثبت و مکان‌یابی",
                   text: "ثبت تصویر، توضیحات و اطلاعات مکانی رخداد در یک فرآیند سریع و یکپارچه.",
                   color: "bg-blue-50 text-blue-600",
                 },
                 {
                   icon: Brain,
-                  number: "02",
+                  number: "2",
                   title: "تحلیل با هوش مصنوعی",
                   text: "بررسی خودکار داده‌ها برای تشخیص نوع رخداد، شدت و واحدهای مرتبط.",
                   color: "bg-purple-50 text-purple-600",
                 },
                 {
                   icon: Workflow,
-                  number: "03",
+                  number: "3",
                   title: "ارجاع و پیگیری",
                   text: "هدایت رخداد به واحد مسئول و پایش چرخه رسیدگی تا بسته شدن پرونده.",
                   color: "bg-green-50 text-green-600",

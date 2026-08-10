@@ -4,13 +4,13 @@ import { neshanReverseGeocode } from "@/services/neshan";
 import { z } from "zod";
 
 const Schema = z.object({
-  lat: z.number(),
-  lng: z.number(),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
 });
 
 export async function GET(req: Request) {
   try {
-    requireAuth();
+    await requireAuth();
     const { searchParams } = new URL(req.url);
     const lat = Number(searchParams.get("lat"));
     const lng = Number(searchParams.get("lng"));

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 
 export async function GET() {
   try {
-    requireAuth();
+    await requireRole("ADMIN");
 
     const [total, pending, inProgress, resolved] = await Promise.all([
       prisma.incident.count(),
@@ -46,6 +46,9 @@ export async function GET() {
   } catch (e) {
     if (e instanceof Error && e.message === "UNAUTHORIZED") {
       return NextResponse.json({ error: "احراز هویت لازم است" }, { status: 401 });
+    }
+    if (e instanceof Error && e.message === "FORBIDDEN") {
+      return NextResponse.json({ error: "دسترسی مجاز نیست" }, { status: 403 });
     }
     return NextResponse.json({ error: "خطای سرور" }, { status: 500 });
   }

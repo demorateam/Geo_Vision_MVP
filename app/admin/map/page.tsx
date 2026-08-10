@@ -7,7 +7,7 @@ import { AdminMapView } from "@/components/dashboard/AdminMapView";
 export const dynamic = "force-dynamic";
 
 export default async function AdminMapPage() {
-  const session = getSession();
+  const session = await getSession();
   if (!session || session.role !== "ADMIN") redirect("/dashboard");
 
   const incidents = await prisma.incident.findMany({

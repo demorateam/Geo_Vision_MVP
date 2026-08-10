@@ -31,6 +31,41 @@ const LocationMap = dynamic(
 
 const MAX_SIZE = 20 * 1024 * 1024;
 
+function readAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error("خواندن تصویر ناموفق بود"));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function optimizeImage(file: File): Promise<File> {
+  if (file.size <= 1.5 * 1024 * 1024 || !("createImageBitmap" in window)) return file;
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const maxDimension = 1600;
+    const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) return file;
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
+    if (!blob || blob.size >= file.size) return file;
+    const baseName = file.name.replace(/\.[^.]+$/, "") || "incident";
+    return new File([blob], `${baseName}.jpg`, { type: "image/jpeg", lastModified: Date.now() });
+  } catch {
+    return file;
+  }
+}
+
 const FormSchema = z.object({
   description: z.string().min(5, "توضیحات حداقل ۵ کاراکتر"),
 });
@@ -47,6 +82,7 @@ export function IncidentReportForm() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [fileName, setFileName] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -66,8 +102,9 @@ export function IncidentReportForm() {
   const description = watch("description");
 
   const handleFile = useCallback(async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      toast.error("فقط فایل تصویری مجاز است");
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
+    if (!allowedTypes.includes(file.type.toLowerCase())) {
+      toast.error("فقط تصاویر JPG، PNG، WEBP، HEIC و HEIF مجاز هستند");
       return;
     }
     if (file.size > MAX_SIZE) {
@@ -76,41 +113,37 @@ export function IncidentReportForm() {
     }
     setFileName(file.name);
     setUploading(true);
+    setImageUrl(null);
 
     try {
-      // Read as base64 for AI
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = reader.result as string;
-        setImageBase64(base64);
-        setImageUrl(base64);
-
-        // Try extract GPS
-        try {
-          const gps = await extractGpsFromImage(file);
-          if (gps) {
-            setLocation({ lat: gps.latitude, lng: gps.longitude });
-            toast.success("موقعیت GPS از عکس استخراج شد");
-          } else {
-            toast.info("GPS در عکس یافت نشد. لطفا موقعیت را روی نقشه انتخاب کنید");
-          }
-        } catch {
-          // ignore
+      // GPS must be read from the original file before mobile optimization removes EXIF data.
+      try {
+        const gps = await extractGpsFromImage(file);
+        if (gps) {
+          setLocation({ lat: gps.latitude, lng: gps.longitude });
+          toast.success("موقعیت GPS از عکس استخراج شد");
+        } else {
+          toast.info("GPS در عکس یافت نشد. لطفاً موقعیت را روی نقشه انتخاب کنید");
         }
-        setUploading(false);
-      };
-      reader.readAsDataURL(file);
-
-      // Also upload to server for storage
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      if (res.ok) {
-        const data = await res.json();
-        setImageUrl(data.url);
+      } catch {
+        // EXIF is optional; the user can select the location manually.
       }
-    } catch {
-      toast.error("خطا در آپلود فایل");
+
+      const optimizedFile = await optimizeImage(file);
+      const base64 = await readAsDataUrl(optimizedFile);
+      setImageBase64(base64);
+      setPreviewUrl(base64);
+
+      const formData = new FormData();
+      formData.append("file", optimizedFile);
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "خطا در آپلود فایل");
+      setImageUrl(data.url);
+    } catch (error) {
+      setImageUrl(null);
+      toast.error(error instanceof Error ? error.message : "خطا در آپلود فایل");
+    } finally {
       setUploading(false);
     }
   }, []);
@@ -127,6 +160,10 @@ export function IncidentReportForm() {
 
   // Runs AI analysis silently in the background, then submits the report.
   const onFinalSubmit = async () => {
+    if (!navigator.onLine) {
+      toast.error("برای ثبت رخداد به اتصال اینترنت نیاز دارید");
+      return;
+    }
     if (!imageUrl) {
       toast.error("لطفا تصویر را آپلود کنید");
       setStep(1);
@@ -239,12 +276,12 @@ export function IncidentReportForm() {
                     <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
                     <p className="text-sm text-muted-foreground">در حال آپلود...</p>
                   </div>
-                ) : imageUrl ? (
+                ) : previewUrl ? (
                   <div className="relative w-full">
-                    <img src={imageUrl} alt="پیش‌نمایش" className="mx-auto max-h-64 rounded-lg object-contain" />
+                    <img src={previewUrl} alt="پیش‌نمایش" className="mx-auto max-h-64 rounded-lg object-contain" />
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); setImageUrl(null); setImageBase64(null); setFileName(""); }}
+                      onClick={(e) => { e.stopPropagation(); setImageUrl(null); setPreviewUrl(null); setImageBase64(null); setFileName(""); }}
                       className="absolute left-2 top-2 rounded-full bg-red-500 p-1 text-white"
                     >
                       <X className="h-4 w-4" />
@@ -263,6 +300,7 @@ export function IncidentReportForm() {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                aria-label="انتخاب تصویر رخداد"
                 className="hidden"
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
               />

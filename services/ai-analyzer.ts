@@ -12,11 +12,11 @@ const AGENCY_LIST = [
   "آتش نشانی",
 ];
 
-const SEVERITY_COLOR: Record<string, string> = {
-  Low: "کم",
-  Medium: "متوسط",
-  High: "بالا",
-  Critical: "بحرانی",
+const SEVERITY_COLOR: Record<Severity, AIAnalysisResult["color_code"]> = {
+  Low: "Green",
+  Medium: "Yellow",
+  High: "Orange",
+  Critical: "Red",
 };
 
 const SYSTEM_PROMPT = `You are an expert municipal emergency dispatcher.
@@ -117,7 +117,7 @@ function normalizeAnalysis(obj: Record<string, unknown>): AIAnalysisResult {
   return {
     incident_type: (obj.incident_type as string) || "نامشخص",
     severity: sev,
-    color_code: SEVERITY_COLOR[sev] as AIAnalysisResult["color_code"],
+    color_code: SEVERITY_COLOR[sev],
     assigned_agencies: Array.isArray(obj.assigned_agencies)
       ? (obj.assigned_agencies as string[]).filter((a) => AGENCY_LIST.includes(a))
       : [],
@@ -258,7 +258,7 @@ export function analyzeWithFallback(
     return {
       incident_type: matched.type,
       severity: matched.severity,
-      color_code: SEVERITY_COLOR[matched.severity] as AIAnalysisResult["color_code"],
+      color_code: SEVERITY_COLOR[matched.severity],
       assigned_agencies: matched.agencies,
       region,
       summary_fa: matched.summary(description),
@@ -270,7 +270,7 @@ export function analyzeWithFallback(
   return {
     incident_type: "مشکل عمومی شهری",
     severity,
-    color_code: SEVERITY_COLOR[severity] as AIAnalysisResult["color_code"],
+    color_code: SEVERITY_COLOR[severity],
     assigned_agencies: ["شهرداری"],
     region,
     summary_fa: "رخداد عمومی شهری گزارش شد. شهرداری برای بررسی اعزام شود.",
