@@ -296,12 +296,12 @@ export default function Home() {
                 نسل جدید مدیریت هوشمند شهری
               </div>
 
-              <h1 className="max-w-2xl text-3xl font-black leading-[1.45] md:text-4xl lg:text-5xl">
-                <span className="block">هوش مصنوعی در</span>
-                <span className="mt-4 block min-h-[1.5em] pr-4 text-blue-400 md:mt-6 md:pr-6">
+              <h1 className="max-w-2xl text-5xl font-black leading-[1.45] md:text-6xl lg:text-7xl">
+                <span className="block"> هوش مصنوعی در</span>
+                <span className="mt-4 block min-h-[1.5em] pr-14 text-blue-400 md:mt-6 md:pr-22">
                   <TypewriterWord
                     words={[
-                      "خدمت به شهر",
+                      "خدمت به شهر ",
                       "قلب مدیریت شهری",
                       "تصمیم‌گیری سریع",
                       "ثبت رخداد شهری",
