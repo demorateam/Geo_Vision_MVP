@@ -1,19 +1,17 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { Upload, MapPin, FileText, Check, X, Image as ImageIcon, Loader2, ArrowLeft, ArrowRight } from "lucide-react";
+import { Upload, Camera, MapPin, FileText, Check, X, Image as ImageIcon, Loader2, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { extractGpsFromImage } from "@/hooks/use-exif";
 import { cn } from "@/lib/utils";
 import type { AIAnalysisResult } from "@/types";
 
@@ -40,12 +38,76 @@ function readAsDataUrl(file: File): Promise<string> {
   });
 }
 
+interface Coordinates {
+  lat: number;
+  lng: number;
+}
+
+interface ResolvedLocation {
+  address: string;
+  region: string | null;
+}
+
+function normalizeMunicipalityZone(value: unknown): string | null {
+  const normalized = String(value ?? "")
+    .trim()
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)));
+  const match = normalized.match(/\d{1,2}/);
+  if (!match) return null;
+
+  const zone = Number(match[0]);
+  if (!Number.isInteger(zone) || zone < 1 || zone > 22) return null;
+
+  return `منطقه ${new Intl.NumberFormat("fa-IR", { useGrouping: false }).format(zone)}`;
+}
+
+async function resolveLocation(lat: number, lng: number): Promise<ResolvedLocation> {
+  try {
+    const response = await fetch(`/api/geocode?lat=${lat}&lng=${lng}`, {
+      cache: "no-store",
+    });
+    if (!response.ok) return { address: "", region: null };
+
+    const data = await response.json();
+    return {
+      address: data?.formatted_address ?? data?.address ?? "",
+      region: normalizeMunicipalityZone(data?.municipality_zone),
+    };
+  } catch {
+    return { address: "", region: null };
+  }
+}
+
+function getDeviceLocation(): Promise<Coordinates | null> {
+  if (typeof window === "undefined" || !window.isSecureContext || !navigator.geolocation) {
+    return Promise.resolve(null);
+  }
+
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+      },
+      () => resolve(null),
+      {
+        enableHighAccuracy: false,
+        timeout: 15000,
+        maximumAge: 300000,
+      },
+    );
+  });
+}
+
 async function optimizeImage(file: File): Promise<File> {
-  if (file.size <= 1.5 * 1024 * 1024 || !("createImageBitmap" in window)) return file;
+  if (!("createImageBitmap" in window)) return file;
 
   try {
     const bitmap = await createImageBitmap(file);
-    const maxDimension = 1600;
+    const maxDimension = 1280;
     const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
     const canvas = document.createElement("canvas");
     canvas.width = Math.max(1, Math.round(bitmap.width * scale));
@@ -57,7 +119,7 @@ async function optimizeImage(file: File): Promise<File> {
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     bitmap.close();
 
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.76));
     if (!blob || blob.size >= file.size) return file;
     const baseName = file.name.replace(/\.[^.]+$/, "") || "incident";
     return new File([blob], `${baseName}.jpg`, { type: "image/jpeg", lastModified: Date.now() });
@@ -83,14 +145,50 @@ export function IncidentReportForm() {
   const [step, setStep] = useState(1);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [analysisFile, setAnalysisFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState("");
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [address, setAddress] = useState("");
+  const [region, setRegion] = useState<string | null>(null);
+  const [resolvingRegion, setResolvingRegion] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const previewObjectUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewObjectUrlRef.current) {
+        URL.revokeObjectURL(previewObjectUrlRef.current);
+      }
+    };
+  }, []);
+
+  // Resolve the municipality region for GPS, search, click and marker drag.
+  useEffect(() => {
+    if (!location) {
+      setRegion(null);
+      setResolvingRegion(false);
+      return;
+    }
+
+    let cancelled = false;
+    setResolvingRegion(true);
+    setRegion(null);
+
+    void resolveLocation(location.lat, location.lng).then((resolved) => {
+      if (cancelled) return;
+      if (resolved.address) setAddress(resolved.address);
+      setRegion(resolved.region);
+      setResolvingRegion(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location?.lat, location?.lng]);
 
   const {
     register,
@@ -114,25 +212,36 @@ export function IncidentReportForm() {
     setFileName(file.name);
     setUploading(true);
     setImageUrl(null);
+    setAnalysisFile(null);
+    setLocation(null);
+    setAddress("");
+    setRegion(null);
+
+    if (previewObjectUrlRef.current) {
+      URL.revokeObjectURL(previewObjectUrlRef.current);
+      previewObjectUrlRef.current = null;
+    }
+    setPreviewUrl(null);
 
     try {
-      // GPS must be read from the original file before mobile optimization removes EXIF data.
-      try {
-        const gps = await extractGpsFromImage(file);
-        if (gps) {
-          setLocation({ lat: gps.latitude, lng: gps.longitude });
-          toast.success("موقعیت GPS از عکس استخراج شد");
-        } else {
-          toast.info("GPS در عکس یافت نشد. لطفاً موقعیت را روی نقشه انتخاب کنید");
-        }
-      } catch {
-        // EXIF is optional; the user can select the location manually.
+      // Image EXIF is intentionally ignored because it may be stale or unrelated
+      // to the current incident. Device GPS and manual map selection are safer.
+      toast.info("در حال دریافت موقعیت دستگاه...");
+      const deviceLocation = await getDeviceLocation();
+
+      if (deviceLocation) {
+        setLocation(deviceLocation);
+        toast.success("موقعیت از GPS دستگاه دریافت شد");
+      } else {
+        toast.info("موقعیت را با دکمه «موقعیت من» یا به‌صورت دستی روی نقشه انتخاب کنید");
       }
 
       const optimizedFile = await optimizeImage(file);
-      const base64 = await readAsDataUrl(optimizedFile);
-      setImageBase64(base64);
-      setPreviewUrl(base64);
+      setAnalysisFile(optimizedFile);
+
+      const nextPreviewUrl = URL.createObjectURL(optimizedFile);
+      previewObjectUrlRef.current = nextPreviewUrl;
+      setPreviewUrl(nextPreviewUrl);
 
       const formData = new FormData();
       formData.append("file", optimizedFile);
@@ -142,6 +251,13 @@ export function IncidentReportForm() {
       setImageUrl(data.url);
     } catch (error) {
       setImageUrl(null);
+      setAnalysisFile(null);
+
+      if (previewObjectUrlRef.current) {
+        URL.revokeObjectURL(previewObjectUrlRef.current);
+        previewObjectUrlRef.current = null;
+      }
+      setPreviewUrl(null);
       toast.error(error instanceof Error ? error.message : "خطا در آپلود فایل");
     } finally {
       setUploading(false);
@@ -169,6 +285,11 @@ export function IncidentReportForm() {
       setStep(1);
       return;
     }
+    if (!analysisFile) {
+      toast.error("فایل تصویر برای تحلیل در دسترس نیست. لطفاً تصویر را دوباره انتخاب کنید");
+      setStep(1);
+      return;
+    }
     if (!location) {
       toast.error("لطفا موقعیت را روی نقشه انتخاب کنید");
       setStep(2);
@@ -181,6 +302,16 @@ export function IncidentReportForm() {
 
     setSubmitting(true);
     try {
+      // Region belongs to the selected coordinates, never to image/AI analysis.
+      const latestResolvedLocation = region
+        ? null
+        : await resolveLocation(location.lat, location.lng);
+      const selectedRegion = region ?? latestResolvedLocation?.region ?? "نامشخص";
+      if (latestResolvedLocation?.address) setAddress(latestResolvedLocation.address);
+
+      // Base64 is created only at final submission to keep mobile memory usage low.
+      const imageBase64 = await readAsDataUrl(analysisFile);
+
       // 1) Silent AI analysis (no UI shown to the user for this step)
       const analysisRes = await fetch("/api/analyze-incident", {
         method: "POST",
@@ -200,7 +331,7 @@ export function IncidentReportForm() {
           description,
           latitude: location.lat,
           longitude: location.lng,
-          region: analysis.region,
+          region: selectedRegion,
           incidentType: analysis.incident_type,
           severity: analysis.severity,
           colorCode: analysis.color_code,
@@ -281,7 +412,28 @@ export function IncidentReportForm() {
                     <img src={previewUrl} alt="پیش‌نمایش" className="mx-auto max-h-64 rounded-lg object-contain" />
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); setImageUrl(null); setPreviewUrl(null); setImageBase64(null); setFileName(""); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setImageUrl(null);
+                        setAnalysisFile(null);
+                        setLocation(null);
+                        setAddress("");
+                        setRegion(null);
+                        setFileName("");
+
+                        if (previewObjectUrlRef.current) {
+                          URL.revokeObjectURL(previewObjectUrlRef.current);
+                          previewObjectUrlRef.current = null;
+                        }
+                        setPreviewUrl(null);
+
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = "";
+                        }
+                        if (cameraInputRef.current) {
+                          cameraInputRef.current.value = "";
+                        }
+                      }}
                       className="absolute left-2 top-2 rounded-full bg-red-500 p-1 text-white"
                     >
                       <X className="h-4 w-4" />
@@ -291,8 +443,33 @@ export function IncidentReportForm() {
                 ) : (
                   <div className="flex flex-col items-center gap-2 text-center">
                     <Upload className="h-10 w-10 text-slate-400" />
-                    <p className="text-sm font-medium">تصویر را اینجا رها کنید یا کلیک کنید</p>
+                    <p className="text-sm font-medium">تصویر رخداد را اضافه کنید</p>
                     <p className="text-xs text-muted-foreground">JPG, PNG, WEBP - حداکثر ۲۰MB</p>
+                    <div className="mt-3 flex w-full max-w-sm flex-col gap-2 sm:flex-row">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1 gap-2 bg-white"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          fileInputRef.current?.click();
+                        }}
+                      >
+                        <ImageIcon className="h-4 w-4" />
+                        انتخاب از گالری
+                      </Button>
+                      <Button
+                        type="button"
+                        className="flex-1 gap-2"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          cameraInputRef.current?.click();
+                        }}
+                      >
+                        <Camera className="h-4 w-4" />
+                        گرفتن عکس
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -303,6 +480,18 @@ export function IncidentReportForm() {
                 aria-label="انتخاب تصویر رخداد"
                 className="hidden"
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+              />
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                aria-label="گرفتن عکس رخداد با دوربین"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFile(file);
+                }}
               />
             </div>
           )}
@@ -317,13 +506,20 @@ export function IncidentReportForm() {
                 showSearch
                 height="400px"
                 onLocationSelect={(lat, lng) => setLocation({ lat, lng })}
-                onAddressResolve={(addr) => setAddress(addr)}
+                onAddressResolve={(addr, resolvedRegion) => {
+                  if (addr) setAddress(addr);
+                  setRegion(resolvedRegion);
+                }}
               />
               {location && (
                 <div className="rounded-lg bg-blue-50 p-3 text-sm">
                   <p className="font-medium">موقعیت انتخاب شده:</p>
                   <p className="text-muted-foreground">عرض جغرافیایی: {location.lat.toFixed(6)}، طول جغرافیایی: {location.lng.toFixed(6)}</p>
                   {address && <p className="mt-1 text-muted-foreground">آدرس: {address}</p>}
+                  <p className="mt-1 text-muted-foreground">
+                    منطقه شهرداری:{" "}
+                    {resolvingRegion ? "در حال تشخیص..." : region ?? "نامشخص"}
+                  </p>
                 </div>
               )}
             </div>

@@ -18,9 +18,14 @@ export interface NeshanSearchResponse {
   items: NeshanSearchItem[];
 }
 
-export async function neshanSearch(term: string, lat?: number, lng?: number): Promise<NeshanSearchResponse> {
+export async function neshanSearch(
+  term: string,
+  lat?: number,
+  lng?: number,
+): Promise<NeshanSearchResponse> {
   const apiKey = getApiKey();
   if (!apiKey || apiKey.startsWith("your_")) return mockSearch(term);
+
   const params = new URLSearchParams({ term });
   if (lat !== undefined && lng !== undefined) {
     params.set("lat", String(lat));
@@ -36,24 +41,29 @@ export async function neshanSearch(term: string, lat?: number, lng?: number): Pr
     if (!res.ok) throw new Error(`Neshan search failed: ${res.status}`);
     return (await res.json()) as NeshanSearchResponse;
   } catch {
-    // Fallback mock results for offline development
     return mockSearch(term);
   }
 }
 
 export interface NeshanReverseResponse {
+  status?: string;
   formatted_address?: string;
   route_name?: string;
   route_type?: string;
   neighbourhood?: string;
   city?: string;
   state?: string;
+  municipality_zone?: string | number | null;
   district?: string;
 }
 
-export async function neshanReverseGeocode(lat: number, lng: number): Promise<NeshanReverseResponse> {
+export async function neshanReverseGeocode(
+  lat: number,
+  lng: number,
+): Promise<NeshanReverseResponse> {
   const apiKey = getApiKey();
   if (!apiKey || apiKey.startsWith("your_")) return mockReverse(lat, lng);
+
   try {
     const res = await fetch(`${NESHAN_BASE}/v5/reverse?lat=${lat}&lng=${lng}`, {
       headers: { "Api-Key": apiKey },
@@ -63,6 +73,8 @@ export async function neshanReverseGeocode(lat: number, lng: number): Promise<Ne
     if (!res.ok) throw new Error(`Neshan reverse failed: ${res.status}`);
     return (await res.json()) as NeshanReverseResponse;
   } catch {
+    // Never fabricate a municipality zone. A made-up region would be stored as
+    // real operational data. Address-only mock data is sufficient for offline UI.
     return mockReverse(lat, lng);
   }
 }
@@ -72,8 +84,8 @@ export function getNeshanMapUrl(lat: number, lng: number, zoom = 13): string {
   return `${NESHAN_BASE}/static/v1/maps?center=${lat},${lng}&zoom=${zoom}&width=600&height=400&api-key=${apiKey}`;
 }
 
-// ---- Mock fallbacks (used when API key is placeholder or network unavailable) ----
-
+// Address-only fallbacks used for offline development. They intentionally do
+// not include municipality_zone because region guessing is unsafe.
 function mockSearch(term: string): NeshanSearchResponse {
   const items: NeshanSearchItem[] = [
     {
@@ -111,19 +123,12 @@ function mockSearch(term: string): NeshanSearchResponse {
 }
 
 function mockReverse(lat: number, lng: number): NeshanReverseResponse {
-  const district = Math.min(22, Math.max(1, (Math.floor(((lat - 35.55) * 10) + ((lng - 51.2) * 5)) % 22) + 1));
   return {
-    formatted_address: `تهران، منطقه ${toFa(district)}، نزدیک مختصات ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-    neighbourhood: `محله نمونه ${toFa(district)}`,
+    formatted_address: `نزدیک مختصات ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
     city: "تهران",
     state: "تهران",
-    district: `منطقه ${toFa(district)}`,
+    municipality_zone: null,
   };
-}
-
-function toFa(n: number): string {
-  const fa = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
-  return String(n).split("").map((d) => fa[parseInt(d, 10)] ?? d).join("");
 }
 
 export const SEVERITY_COLOR_HEX: Record<Severity, string> = {

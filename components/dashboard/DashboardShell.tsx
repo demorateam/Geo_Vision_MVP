@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Shield,
@@ -71,6 +71,18 @@ export function DashboardShell({
   const items = NAV_ITEMS.filter((item) => item.roles.includes(user.role));
   const roleLabel = user.role === "ADMIN" ? "مدیر سیستم" : user.role === "AGENCY" ? `اپراتور ${user.agency ?? ""}` : "شهروند";
 
+  // Keep the page behind the mobile navigation fixed while the sidebar is open.
+  useEffect(() => {
+    if (!sidebarOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [sidebarOpen]);
+
   const toggleExpand = (href: string) => {
     setExpandedItems((prev) =>
       prev.includes(href) ? prev.filter((h) => h !== href) : [...prev, href]
@@ -85,10 +97,10 @@ export function DashboardShell({
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen w-full min-w-0 overflow-x-hidden bg-slate-50">
       <aside
         className={cn(
-          "sidebar-gradient fixed inset-y-0 right-0 z-40 w-64 transform overflow-hidden border-l border-white/10 transition-transform duration-200 lg:static lg:translate-x-0",
+          "sidebar-gradient fixed inset-y-0 !right-0 !left-auto z-[2000] w-[min(20rem,88vw)] transform overflow-hidden border-l border-white/10 transition-transform duration-200 lg:static lg:z-40 lg:w-64 lg:translate-x-0",
           sidebarOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0",
         )}
       >
@@ -117,7 +129,12 @@ export function DashboardShell({
                 سامانه رخداد شهری
               </span>
             </div>
-            <button className="text-slate-300 lg:hidden" onClick={() => setSidebarOpen(false)}>
+            <button
+              type="button"
+              aria-label="بستن منو"
+              className="text-slate-300 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            >
               <X className="h-5 w-5" />
             </button>
           </div>
@@ -217,12 +234,22 @@ export function DashboardShell({
       </aside>
 
       {sidebarOpen && (
-        <div className="fixed inset-0 z-30 bg-black/30 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <button
+          type="button"
+          aria-label="بستن منو"
+          className="fixed inset-0 z-[1990] bg-black/45 backdrop-blur-[1px] lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
 
-      <div className="flex flex-1 flex-col lg:pr-0">
+      <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden lg:pr-0">
         <header className="flex h-16 items-center justify-between border-b bg-white px-4 lg:hidden">
-          <button onClick={() => setSidebarOpen(true)}>
+          <button
+            type="button"
+            aria-label="باز کردن منو"
+            aria-expanded={sidebarOpen}
+            onClick={() => setSidebarOpen(true)}
+          >
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2">
@@ -232,7 +259,7 @@ export function DashboardShell({
           <div className="w-5" />
         </header>
 
-        <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">{children}</main>
+        <main className="min-w-0 max-w-full flex-1 overflow-x-auto p-4 md:p-6 lg:p-8">{children}</main>
       </div>
 
       <style jsx global>{`

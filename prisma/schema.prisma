@@ -8,19 +8,18 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   name      String
-  phone     String   @unique
-  role      String   @default("CITIZEN")
+  phone     String     @unique
+  role      String     @default("CITIZEN")
   agency    String?
-  createdAt DateTime @default(now())
-
+  createdAt DateTime   @default(now())
   incidents Incident[] @relation("ReporterIncidents")
 }
 
 model Incident {
-  id             String   @id @default(cuid())
-  incidentNumber String   @unique
+  id             String                  @id @default(cuid())
+  incidentNumber String                  @unique
   reporterId     String
   imageUrl       String
   description    String
@@ -28,16 +27,15 @@ model Incident {
   longitude      Float
   region         String
   incidentType   String
-  severity       String   @default("Low")
-  colorCode      String   @default("Green")
+  severity       String                  @default("Low")
+  colorCode      String                  @default("Green")
   aiSummary      String?
-  status         String   @default("PENDING")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  reporter      User                   @relation("ReporterIncidents", fields: [reporterId], references: [id])
-  agencies      IncidentAgency[]
-  statusHistory IncidentStatusHistory[]
+  status         String                  @default("PENDING")
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  reporter       User                    @relation("ReporterIncidents", fields: [reporterId], references: [id])
+  agencies       IncidentAgency[]
+  statusHistory  IncidentStatusHistory[]
 
   @@index([reporterId])
   @@index([status])
@@ -50,8 +48,7 @@ model IncidentAgency {
   incidentId String
   agencyName String
   assignedAt DateTime @default(now())
-
-  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
 
   @@index([incidentId])
   @@index([agencyName])
@@ -63,8 +60,7 @@ model IncidentStatusHistory {
   oldStatus  String?
   newStatus  String
   createdAt  DateTime @default(now())
-
-  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
 
   @@index([incidentId])
 }

@@ -48,7 +48,10 @@ export async function analyzeWithOpenAI(
   const apiKey = process.env.OPENAI_API_KEY;
   const baseUrl = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
   const model = (imageBase64 ? process.env.VISION_MODEL : process.env.LLM_MODEL) || "gpt-4o-mini";
-  if (!apiKey) return null;
+  if (!apiKey) {
+  console.error("=== AI ERROR: OPENAI_API_KEY NOT FOUND ===");
+  return null;
+}
 
   const content: Array<
     { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }
@@ -84,6 +87,11 @@ export async function analyzeWithOpenAI(
       return null;
     }
     const data = (await res.json()) as OpenAIResponse;
+    
+
+
+
+
     const raw = data.choices?.[0]?.message?.content;
     if (!raw) return null;
     const parsed = extractJson(raw);
@@ -281,6 +289,11 @@ export async function analyzeIncident(
   imageBase64: string | null,
   description: string,
 ): Promise<{ result: AIAnalysisResult; source: "openai" | "fallback" }> {
+
+
+
+
+
   const openaiResult = await analyzeWithOpenAI(imageBase64, description);
   if (openaiResult) {
     return { result: openaiResult, source: "openai" };

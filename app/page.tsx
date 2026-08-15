@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { TypewriterWord } from "@/components/home/TypewriterWord";
 
 const challenges = [
   "گزارش‌های میدانی پراکنده و فاقد اطلاعات مکانی دقیق",
@@ -105,19 +106,13 @@ function AnimatedCityBackground({
 
       <svg
         viewBox="0 0 1440 700"
-        preserveAspectRatio="none"
-        className={`absolute inset-0 h-full w-full ${
+        preserveAspectRatio="xMidYMid slice"
+        className={`absolute left-1/2 top-1/2 h-full w-[185%] -translate-x-1/2 -translate-y-1/2 sm:w-[140%] lg:w-full ${
           dark ? "opacity-55" : "opacity-45"
         }`}
       >
         <defs>
-          <linearGradient
-            id={`${idPrefix}-route-a`}
-            x1="0"
-            y1="0"
-            x2="1"
-            y2="0"
-          >
+          <linearGradient id={`${idPrefix}-route-a`} x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stopColor={primary} stopOpacity="0" />
             <stop
               offset="45%"
@@ -127,13 +122,7 @@ function AnimatedCityBackground({
             <stop offset="100%" stopColor={cyan} stopOpacity="0" />
           </linearGradient>
 
-          <linearGradient
-            id={`${idPrefix}-route-b`}
-            x1="0"
-            y1="0"
-            x2="1"
-            y2="1"
-          >
+          <linearGradient id={`${idPrefix}-route-b`} x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor={secondary} stopOpacity="0" />
             <stop
               offset="50%"
@@ -247,6 +236,9 @@ export default function Home() {
     <div
       className="min-h-screen overflow-hidden bg-[#f8fafc] text-slate-950"
       dir="rtl"
+      style={{
+        fontFamily: "'B Nazanin', 'BNazanin', Tahoma, sans-serif",
+      }}
     >
       {/* ==================== HERO ==================== */}
       <section className="relative overflow-hidden bg-[#061126] text-white">
@@ -265,7 +257,7 @@ export default function Home() {
 
               <div>
                 <p className="font-bold text-white">سامانه مدیریت رخداد شهری</p>
-                <p className="mt-0.5 text-xs text-slate-400">
+                <p className="mt-0.5 text-sm text-slate-400">
                   Urban Event Management Platform
                 </p>
               </div>
@@ -295,31 +287,31 @@ export default function Home() {
           <div className="grid items-center gap-14 lg:grid-cols-2">
             {/* Hero text */}
             <div>
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-400/10 px-4 py-2 text-sm text-blue-200">
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-400/10 px-4 py-2 text-base text-blue-200">
                 <Sparkles className="h-4 w-4" />
                 نسل جدید مدیریت هوشمند شهری
               </div>
 
-              <h1 className="max-w-2xl text-4xl font-black leading-[1.45] md:text-5xl lg:text-[58px]">
-                شهر را
-                <span className="relative mx-2 inline-block text-blue-400">
-                  هوشمندتر
+              <h1 className="max-w-2xl text-5xl font-black leading-[1.45] md:text-6xl lg:text-7xl">
+                <span className="block">هوش مصنوعی در</span>
+                <span className="mt-4 block h-[3.2em] pr-2 text-blue-400 sm:h-[1.6em] sm:pr-14 md:mt-6 md:pr-[5.5rem]">
+                  <TypewriterWord
+                    words={[
+                      "خدمت به شهر",
+                      "قلب مدیریت شهری",
+                      "تصمیم‌گیری سریع",
+                      "ثبت رخداد شهری",
+                      "تشخیص رخداد شهری",
+                    ]}
+                  />
                 </span>
-                ببینید،
-                <br />
-                سریع‌تر تصمیم بگیرید.
               </h1>
 
-              <p className="mt-7 max-w-xl text-base leading-8 text-slate-300 md:text-lg">
-                UEMP رخدادهای شهری را از لحظه ثبت تا تحلیل هوشمند، ارجاع سازمانی
-                و پیگیری عملیات در یک جریان یکپارچه و مکان‌محور مدیریت می‌کند.
-              </p>
-
-              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-12 flex flex-col gap-3 md:mt-14 sm:flex-row">
                 <Link href="/register">
                   <Button
                     size="lg"
-                    className="h-14 gap-2 bg-blue-600 px-7 text-base text-white shadow-xl shadow-blue-600/20 hover:bg-blue-500"
+                    className="h-14 gap-2 bg-blue-600 px-7 text-lg text-white shadow-xl shadow-blue-600/20 hover:bg-blue-500"
                   >
                     ثبت رخداد جدید
                     <ArrowLeft className="h-5 w-5" />
@@ -330,7 +322,7 @@ export default function Home() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="h-14 border-white/20 bg-white/5 px-7 text-base text-white hover:bg-white/10 hover:text-white"
+                    className="h-14 border-white/20 bg-white/5 px-7 text-lg text-white hover:bg-white/10 hover:text-white"
                   >
                     ورود به پنل مدیریت
                   </Button>
@@ -346,17 +338,27 @@ export default function Home() {
                 ].map((item) => (
                   <div
                     key={item}
-                    className="flex items-center gap-2 text-sm text-slate-400"
+                    className="flex items-center gap-2 text-base text-slate-400"
                   >
                     <CheckCircle2 className="h-4 w-4 text-cyan-400" />
                     {item}
                   </div>
                 ))}
               </div>
+
+              {/* ===== NEW: Powered by Demora team ===== */}
+              <div className="mt-12 flex items-center justify-center gap-2">
+                <div className="h-px w-12 bg-gradient-to-r from-transparent to-slate-700" />
+                <p className="text-sm font-medium text-slate-500">
+                  Powered by{" "}
+                  <span className="font-semibold text-blue-400">Demora team</span>
+                </p>
+                <div className="h-px w-12 bg-gradient-to-l from-transparent to-slate-700" />
+              </div>
             </div>
 
             {/* Hero visual */}
-            <div className="relative mx-auto w-full max-w-[680px] lg:mx-0">
+            <div className="relative mx-auto w-[96%] max-w-[680px] origin-center sm:w-full lg:mx-0">
               <div className="absolute -inset-5 rounded-[36px] bg-blue-500/10 blur-2xl" />
 
               <div className="relative overflow-hidden rounded-[28px] border border-white/15 bg-slate-900/80 p-2 shadow-2xl shadow-black/40">
@@ -367,7 +369,7 @@ export default function Home() {
                     <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
                   </div>
 
-                  <span className="text-[11px] text-slate-500">
+                  <span className="text-sm text-slate-500">
                     UEMP Command Center
                   </span>
                 </div>
@@ -400,7 +402,7 @@ export default function Home() {
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-green-400" />
                   </span>
 
-                  <span className="text-xs text-slate-300">
+                  <span className="text-sm text-slate-300">
                     پایش زنده رخدادهای شهری
                   </span>
                 </div>
@@ -413,56 +415,12 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <p className="text-xs text-slate-400">AI Engine</p>
-                  <p className="mt-0.5 text-sm font-semibold text-white">
+                  <p className="text-sm text-slate-400">AI Engine</p>
+                  <p className="mt-0.5 text-base font-semibold text-white">
                     تحلیل خودکار رخداد
                   </p>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ==================== VISION ==================== */}
-      <section className="relative overflow-hidden bg-white py-20 md:py-28">
-        <AnimatedCityBackground idPrefix="vision" />
-        <div className="container relative z-10 mx-auto px-4">
-          <div className="grid gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-            <div>
-              <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50">
-                <Users className="h-6 w-6 text-blue-600" />
-              </div>
-
-              <p className="text-xl font-black text-blue-600 md:text-2xl">چشم‌انداز UEMP</p>
-
-              <h2 className="mt-3 text-3xl font-black leading-[1.6] md:text-4xl">
-                از مدیریت واکنشی،
-                <br />
-                به مدیریت
-                <span className="text-blue-600"> پیشگیرانه و داده‌محور</span>
-              </h2>
-
-              <p className="mt-5 max-w-xl leading-8 text-slate-500">
-                UEMP یک سامانه گزارش‌گیری ساده نیست. این پلتفرم اطلاعات میدانی،
-                داده‌های مکانی، هوش مصنوعی و گردش کار سازمانی را در یک زیرساخت
-                واحد به هم متصل می‌کند.
-              </p>
-            </div>
-
-            <div className="grid gap-4">
-              {challenges.map((item, index) => (
-                <div
-                  key={item}
-                  className="group flex items-start gap-5 rounded-2xl border border-slate-200 bg-slate-50 p-5 transition-all hover:-translate-y-1 hover:border-blue-200 hover:bg-white hover:shadow-xl hover:shadow-blue-950/5"
-                >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-sm font-black text-blue-600 shadow-sm">
-                    {index + 1}
-                  </div>
-
-                  <p className="pt-2 leading-7 text-slate-600">{item}</p>
-                </div>
-              ))}
             </div>
           </div>
         </div>
@@ -499,7 +457,7 @@ export default function Home() {
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
 
               <div className="absolute bottom-6 right-6 rounded-2xl border border-white/20 bg-slate-950/60 px-5 py-4 text-white backdrop-blur-md">
-                <div className="flex items-center gap-2 text-sm">
+                <div className="flex items-center gap-2 text-base">
                   <Sparkles className="h-4 w-4 text-cyan-300" />
                   تحلیل تصویر و اطلاعات رخداد
                 </div>
@@ -551,7 +509,7 @@ export default function Home() {
                     </div>
 
                     <div>
-                      <span className="text-xs font-bold text-slate-400">
+                      <span className="text-sm font-bold text-slate-400">
                         {step.number}
                       </span>
 
@@ -574,7 +532,7 @@ export default function Home() {
         <AnimatedCityBackground idPrefix="command-center" />
         <div className="container relative z-10 mx-auto px-4">
           <div className="mx-auto mb-14 max-w-3xl text-center">
-            <div className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-blue-600">
+            <div className="mb-4 inline-flex items-center gap-2 text-base font-bold text-blue-600">
               <CircleGauge className="h-5 w-5" />
               مرکز فرماندهی هوشمند
             </div>
@@ -595,14 +553,13 @@ export default function Home() {
             {/* Map */}
             <div className="group overflow-hidden rounded-[28px] bg-[#071426] lg:col-span-7">
               <div className="p-6 text-white md:p-8">
-                <div className="mb-2 flex items-center gap-2 text-sm text-cyan-300">
+                <div className="mb-2 flex items-center gap-2 text-base text-cyan-300">
                   <MapPin className="h-4 w-4" />
                   نظارت لحظه‌ای
                 </div>
 
                 <h3 className="text-2xl font-bold">نقشه زنده رخدادهای شهری</h3>
               </div>
-
               <div className="px-3 pb-3">
                 <Image
                   src="/images/uemp/live-event-map.jpg"
@@ -617,7 +574,7 @@ export default function Home() {
             {/* KPI */}
             <div className="group overflow-hidden rounded-[28px] border border-slate-200 bg-slate-50 lg:col-span-5">
               <div className="p-6 md:p-8">
-                <div className="mb-2 flex items-center gap-2 text-sm font-bold text-blue-600">
+                <div className="mb-2 flex items-center gap-2 text-base font-bold text-blue-600">
                   <BarChart3 className="h-4 w-4" />
                   تحلیل مدیریتی
                 </div>
@@ -732,7 +689,7 @@ export default function Home() {
                 ].map((item) => (
                   <div
                     key={item}
-                    className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-slate-300"
+                    className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-base text-slate-300"
                   >
                     <CheckCircle2 className="h-4 w-4 shrink-0 text-cyan-400" />
                     {item}
@@ -749,6 +706,50 @@ export default function Home() {
                 height={1090}
                 className="w-full rounded-[22px]"
               />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== VISION ==================== */}
+      <section className="relative overflow-hidden bg-white py-20 md:py-28">
+        <AnimatedCityBackground idPrefix="vision" />
+        <div className="container relative z-10 mx-auto px-4">
+          <div className="grid gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+            <div>
+              <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50">
+                <Users className="h-6 w-6 text-blue-600" />
+              </div>
+
+              <p className="text-xl font-black text-blue-600 md:text-2xl">چشم‌انداز UEMP</p>
+
+              <h2 className="mt-3 text-3xl font-black leading-[1.6] md:text-4xl">
+                از مدیریت واکنشی،
+                <br />
+                به مدیریت
+                <span className="text-blue-600"> پیشگیرانه و داده‌محور</span>
+              </h2>
+
+              <p className="mt-5 max-w-xl leading-8 text-slate-500">
+                UEMP یک سامانه گزارش‌گیری ساده نیست. این پلتفرم اطلاعات میدانی،
+                داده‌های مکانی، هوش مصنوعی و گردش کار سازمانی را در یک زیرساخت
+                واحد به هم متصل می‌کند.
+              </p>
+            </div>
+
+            <div className="grid gap-4">
+              {challenges.map((item, index) => (
+                <div
+                  key={item}
+                  className="group flex items-start gap-5 rounded-2xl border border-slate-200 bg-slate-50 p-5 transition-all hover:-translate-y-1 hover:border-blue-200 hover:bg-white hover:shadow-xl hover:shadow-blue-950/5"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-lg font-black text-blue-600 shadow-sm">
+                    {index + 1}
+                  </div>
+
+                  <p className="pt-2 leading-7 text-slate-600">{item}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -868,7 +869,7 @@ export default function Home() {
                 <div>
                   <h3 className="font-bold">شروع سریع، توسعه مرحله‌ای</h3>
 
-                  <p className="mt-2 text-sm leading-7 text-slate-500">
+                  <p className="mt-2 text-base leading-7 text-slate-500">
                     امکان آغاز با نسخه MVP و توسعه قابلیت‌های هوشمند متناسب با
                     نیاز عملیاتی سازمان.
                   </p>
@@ -929,7 +930,7 @@ export default function Home() {
 
       {/* ==================== FOOTER ==================== */}
       <footer className="border-t border-slate-200 bg-white py-8">
-        <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 text-sm text-slate-500 md:flex-row">
+        <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 text-base text-slate-500 md:flex-row">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600">
               <Shield className="h-4 w-4 text-white" />
@@ -937,7 +938,7 @@ export default function Home() {
 
             <div>
               <p className="font-semibold text-slate-700">UEMP</p>
-              <p className="text-xs">Urban Event Management Platform</p>
+              <p className="text-sm">Urban Event Management Platform</p>
             </div>
           </div>
 

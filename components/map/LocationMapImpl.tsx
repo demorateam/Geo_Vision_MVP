@@ -32,18 +32,42 @@ export interface LocationMapProps {
   showSearch?: boolean;
   height?: string;
   onLocationSelect?: (lat: number, lng: number) => void;
-  onAddressResolve?: (address: string) => void;
+  onAddressResolve?: (address: string, region: string | null) => void;
 }
- 
+
+interface ReverseGeocodeResult {
+  address: string | null;
+  region: string | null;
+}
+
+function normalizeMunicipalityZone(value: unknown): string | null {
+  const normalized = String(value ?? "")
+    .trim()
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)));
+  const match = normalized.match(/\d{1,2}/);
+  if (!match) return null;
+
+  const zone = Number(match[0]);
+  if (!Number.isInteger(zone) || zone < 1 || zone > 22) return null;
+
+  return `منطقه ${new Intl.NumberFormat("fa-IR", { useGrouping: false }).format(zone)}`;
+}
+
 // Geocoding is proxied through the application so provider keys stay on the server.
-async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
+async function reverseGeocode(lat: number, lng: number): Promise<ReverseGeocodeResult> {
   try {
     const res = await fetch(`/api/geocode?lat=${lat}&lng=${lng}`);
-    if (!res.ok) return null;
+    if (!res.ok) return { address: null, region: null };
     const data = await res.json();
-    return data?.formatted_address ?? data?.address ?? null;
+    return {
+      address: data?.formatted_address ?? data?.address ?? null,
+      // municipality_zone is the municipality region. `district` means a
+      // country subdivision in Neshan's response and must not be used here.
+      region: normalizeMunicipalityZone(data?.municipality_zone),
+    };
   } catch {
-    return null;
+    return { address: null, region: null };
   }
 }
  
@@ -71,8 +95,8 @@ export function LocationMap({
   onAddressResolve,
 }: LocationMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const markerRef = useRef<L.Marker | null>(null);
+ const mapRef = useRef<import("leaflet").Map | null>(null);
+ const markerRef = useRef<import("leaflet").Marker | null>(null);
  
   const [position, setPosition] = useState<LatLng>(center);
   const [locating, setLocating] = useState(false);
@@ -94,8 +118,10 @@ export function LocationMap({
   updatePositionRef.current = async (lat: number, lng: number) => {
     setPosition({ lat, lng });
     onLocationSelectRef.current?.(lat, lng);
-    const address = await reverseGeocode(lat, lng);
-    if (address) onAddressResolveRef.current?.(address);
+    const resolved = await reverseGeocode(lat, lng);
+    if (resolved.address || resolved.region) {
+      onAddressResolveRef.current?.(resolved.address ?? "", resolved.region);
+    }
   };
  
   // Create the map once, on mount.
@@ -148,24 +174,91 @@ export function LocationMap({
     mapRef.current.flyTo([position.lat, position.lng], Math.max(mapRef.current.getZoom(), 16));
   }, [position.lat, position.lng]);
  
-  const handleLocateMe = () => {
-    if (!navigator.geolocation) {
-      alert("مرورگر شما از GPS پشتیبانی نمی‌کند");
-      return;
+ const handleLocateMe = async () => {
+  if (!window.isSecureContext) {
+    alert("دریافت موقعیت مکانی فقط روی اتصال امن HTTPS امکان‌پذیر است.");
+    return;
+  }
+
+  if (!navigator.geolocation) {
+    alert("مرورگر یا دستگاه شما از موقعیت مکانی پشتیبانی نمی‌کند.");
+    return;
+  }
+
+  const requestPosition = (options: PositionOptions) =>
+    new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, options);
+    });
+
+  setLocating(true);
+
+  try {
+    let currentPosition: GeolocationPosition;
+
+    try {
+      // ابتدا برای دریافت موقعیت دقیق تلاش می‌کنیم.
+      currentPosition = await requestPosition({
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 60000,
+      });
+    } catch (error) {
+      const locationError = error as GeolocationPositionError;
+
+      // اگر مجوز رد شده باشد، تلاش دوباره فایده‌ای ندارد.
+      if (locationError.code === 1) {
+        throw locationError;
+      }
+
+      // اگر GPS دقیق در دسترس نبود یا Timeout شد،
+      // با دقت معمولی و موقعیت ذخیره‌شده دوباره تلاش می‌کنیم.
+      currentPosition = await requestPosition({
+        enableHighAccuracy: false,
+        timeout: 20000,
+        maximumAge: 300000,
+      });
     }
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        updatePositionRef.current(pos.coords.latitude, pos.coords.longitude);
-        setLocating(false);
-      },
-      () => {
-        alert("دریافت موقعیت مکانی ناموفق بود. دسترسی GPS را بررسی کنید");
-        setLocating(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 },
+
+    await updatePositionRef.current(
+      currentPosition.coords.latitude,
+      currentPosition.coords.longitude,
     );
-  };
+  } catch (error) {
+    const locationError = error as GeolocationPositionError;
+
+    console.warn("Geolocation error:", {
+      code: locationError.code,
+      message: locationError.message,
+    });
+
+    switch (locationError.code) {
+      case 1:
+        alert(
+          "دسترسی به موقعیت مکانی مسدود شده است. از بخش اطلاعات برنامه یا تنظیمات سایت، مجوز Location را روی Allow قرار دهید. همچنین می‌توانید موقعیت را دستی روی نقشه انتخاب کنید.",
+        );
+        break;
+
+      case 2:
+        alert(
+          "موقعیت مکانی دستگاه در دسترس نیست. GPS و اینترنت را روشن کنید یا موقعیت را دستی روی نقشه انتخاب کنید.",
+        );
+        break;
+
+      case 3:
+        alert(
+          "دریافت موقعیت بیش از حد طول کشید. به فضای بازتری بروید و دوباره امتحان کنید یا نقطه را دستی روی نقشه انتخاب کنید.",
+        );
+        break;
+
+      default:
+        alert(
+          "دریافت موقعیت مکانی انجام نشد. می‌توانید محل رخداد را دستی روی نقشه انتخاب کنید.",
+        );
+    }
+  } finally {
+    setLocating(false);
+  }
+};
  
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
@@ -184,7 +277,7 @@ export function LocationMap({
  
   const handleSelectResult = (result: { lat: number; lng: number; label: string }) => {
     updatePositionRef.current(result.lat, result.lng);
-    onAddressResolveRef.current?.(result.label);
+    onAddressResolveRef.current?.(result.label, null);
     setSearchQuery(result.label);
     setSearchResults([]);
   };
