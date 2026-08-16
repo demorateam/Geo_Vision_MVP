@@ -289,11 +289,11 @@ export default function Home() {
         </header>
 
         <div className="container relative z-10 mx-auto px-4 pb-24 pt-16 md:pb-32 md:pt-24">
-          <div className="grid items-center gap-14 lg:grid-cols-2">
+          <div className="grid items-center gap-16 lg:grid-cols-2">
             <div>
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-400/10 px-4 py-2 text-base text-blue-200">
                 <Sparkles className="h-4 w-4" />
-                نسل جدید مدیریت هوشمند شهری
+               نسل جدید مدیریت هوشمند شهری 
               </div>
 
               <h1 className="max-w-2xl text-5xl font-black leading-[1.45] md:text-6xl lg:text-7xl">
@@ -349,6 +349,8 @@ export default function Home() {
                 ))}
               </div>
             </div>
+    
+
 
             <div className="relative mx-auto w-full max-w-[680px] lg:mx-0">
               <div className="absolute -inset-5 rounded-[36px] bg-blue-500/10 blur-2xl" />

@@ -7,7 +7,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { Upload, MapPin, FileText, Check, X, Image as ImageIcon, Loader2, ArrowLeft, ArrowRight } from "lucide-react";
+import { Upload, MapPin, FileText, Check, X, Image as ImageIcon, Loader2, ArrowLeft, ArrowRight, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +30,22 @@ const LocationMap = dynamic(
 );
 
 const MAX_SIZE = 20 * 1024 * 1024;
+
+// Neshan's map tiles only cover Iran. GPS coordinates from photo EXIF data
+// (e.g. from a phone's demo photo, an image edited/exported abroad, or a
+// screenshot) can point outside this area, which causes the map to fail
+// with a 404 when that coordinate is used as the initial center. Coordinates
+// outside this rough bounding box are treated the same as "no GPS found".
+const IRAN_BOUNDS = { minLat: 24, maxLat: 40, minLng: 44, maxLng: 64 };
+
+function isWithinIranBounds(lat: number, lng: number): boolean {
+  return (
+    lat >= IRAN_BOUNDS.minLat &&
+    lat <= IRAN_BOUNDS.maxLat &&
+    lng >= IRAN_BOUNDS.minLng &&
+    lng <= IRAN_BOUNDS.maxLng
+  );
+}
 
 function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -90,7 +106,8 @@ export function IncidentReportForm() {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [address, setAddress] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -119,9 +136,14 @@ export function IncidentReportForm() {
       // GPS must be read from the original file before mobile optimization removes EXIF data.
       try {
         const gps = await extractGpsFromImage(file);
-        if (gps) {
+        if (gps && isWithinIranBounds(gps.latitude, gps.longitude)) {
           setLocation({ lat: gps.latitude, lng: gps.longitude });
           toast.success("موقعیت GPS از عکس استخراج شد");
+        } else if (gps) {
+          // Coordinate exists but is outside Neshan's map coverage (Iran) -
+          // using it as the map center would break the map, so fall back to
+          // manual selection instead, same as "no GPS found".
+          toast.info("موقعیت GPS عکس خارج از محدوده پوشش نقشه است. لطفاً موقعیت را روی نقشه انتخاب کنید");
         } else {
           toast.info("GPS در عکس یافت نشد. لطفاً موقعیت را روی نقشه انتخاب کنید");
         }
@@ -260,15 +282,14 @@ export function IncidentReportForm() {
           {step === 1 && (
             <div className="space-y-4">
               <h2 className="text-lg font-semibold">آپلود تصویر رخداد</h2>
-              <p className="text-sm text-muted-foreground">تصویر رخداد را آپلود کنید. فرمت‌های JPG، PNG، WEBP و حداکثر ۲۰ مگابایت.</p>
+              <p className="text-sm text-muted-foreground">تصویر رخداد را از گالری انتخاب کنید یا مستقیم با دوربین بگیرید. فرمت‌های JPG، PNG، WEBP و حداکثر ۲۰ مگابایت.</p>
               <div
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
                 className={cn(
-                  "flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors",
-                  dragOver ? "border-blue-500 bg-blue-50" : "border-slate-300 hover:border-blue-400 hover:bg-slate-50",
+                  "flex min-h-[200px] flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors",
+                  dragOver ? "border-blue-500 bg-blue-50" : "border-slate-300",
                 )}
               >
                 {uploading ? (
@@ -277,32 +298,57 @@ export function IncidentReportForm() {
                     <p className="text-sm text-muted-foreground">در حال آپلود...</p>
                   </div>
                 ) : previewUrl ? (
-                  <div className="relative w-full">
+                  <div className="relative w-full p-2">
                     <img src={previewUrl} alt="پیش‌نمایش" className="mx-auto max-h-64 rounded-lg object-contain" />
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setImageUrl(null); setPreviewUrl(null); setImageBase64(null); setFileName(""); }}
-                      className="absolute left-2 top-2 rounded-full bg-red-500 p-1 text-white"
+                      className="absolute left-4 top-4 rounded-full bg-red-500 p-1 text-white"
                     >
                       <X className="h-4 w-4" />
                     </button>
                     <p className="mt-2 text-center text-xs text-muted-foreground">{fileName}</p>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center gap-2 text-center">
+                  <div className="flex flex-col items-center gap-4 p-4 text-center">
                     <Upload className="h-10 w-10 text-slate-400" />
-                    <p className="text-sm font-medium">تصویر را اینجا رها کنید یا کلیک کنید</p>
+                    <p className="text-sm text-muted-foreground">تصویر را اینجا رها کنید، یا:</p>
+                    <div className="flex flex-wrap items-center justify-center gap-3">
+                      <Button type="button" variant="outline" className="gap-2" onClick={() => galleryInputRef.current?.click()}>
+                        <ImageIcon className="h-4 w-4" />
+                        انتخاب از گالری
+                      </Button>
+                      <Button type="button" className="gap-2" onClick={() => cameraInputRef.current?.click()}>
+                        <Camera className="h-4 w-4" />
+                        گرفتن عکس با دوربین
+                      </Button>
+                    </div>
                     <p className="text-xs text-muted-foreground">JPG, PNG, WEBP - حداکثر ۲۰MB</p>
                   </div>
                 )}
               </div>
+
+              {/* Gallery picker: opens the normal file/photo chooser */}
               <input
-                ref={fileInputRef}
+                ref={galleryInputRef}
                 type="file"
                 accept="image/*"
-                aria-label="انتخاب تصویر رخداد"
+                aria-label="انتخاب تصویر از گالری"
                 className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+              />
+
+              {/* Camera capture: the `capture` attribute makes mobile browsers open
+                  the camera directly instead of the file/gallery chooser. Desktop
+                  browsers without a camera simply fall back to the file picker. */}
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                aria-label="گرفتن عکس رخداد با دوربین"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
               />
             </div>
           )}
