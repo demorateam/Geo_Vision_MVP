@@ -264,7 +264,7 @@ export default function Home() {
             </Link>
 
             <div className="flex items-center gap-2">
-              <Link href="/login">
+              <Link href="/login?portal=citizen">
                 <Button
                   variant="ghost"
                   className="text-slate-200 hover:bg-white/10 hover:text-white"
@@ -318,7 +318,7 @@ export default function Home() {
                   </Button>
                 </Link>
 
-                <Link href="/login">
+                <Link href="/login?portal=admin&redirect=/admin/incidents">
                   <Button
                     size="lg"
                     variant="outline"
@@ -913,7 +913,7 @@ export default function Home() {
                   </Button>
                 </Link>
 
-                <Link href="/login">
+                <Link href="/login?portal=admin&redirect=/admin/incidents">
                   <Button
                     size="lg"
                     variant="outline"
