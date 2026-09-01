@@ -346,15 +346,7 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* ===== NEW: Powered by Demora team ===== */}
-              <div className="mt-12 flex items-center justify-center gap-2">
-                <div className="h-px w-12 bg-gradient-to-r from-transparent to-slate-700" />
-                <p className="text-sm font-medium text-slate-500">
-                  Powered by{" "}
-                  <span className="font-semibold text-blue-400">Demora team</span>
-                </p>
-                <div className="h-px w-12 bg-gradient-to-l from-transparent to-slate-700" />
-              </div>
+             
             </div>
 
             {/* Hero visual */}

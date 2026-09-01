@@ -10,6 +10,7 @@ import {
   FilePlus,
   ListChecks,
   Map,
+  Flame,
   LogOut,
   Menu,
   X,
@@ -36,6 +37,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/my-reports", label: "گزارش‌های من", icon: ListChecks, roles: ["CITIZEN"] },
   { href: "/admin/incidents", label: "مدیریت رخدادها", icon: ListChecks, roles: ["ADMIN"] },
   { href: "/admin/map", label: "نقشه رخدادها", icon: Map, roles: ["ADMIN"] },
+  { href: "/admin/heatmap", label: "نقشه حرارتی", icon: Flame, roles: ["ADMIN"] },
   {
     href: "/admin/organizations",
     label: "سازمان‌ها",

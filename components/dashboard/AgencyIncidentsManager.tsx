@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2, MapPin, Clock } from "lucide-react";
+import { Loader2, MapPin, Clock, ChevronLeft } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -72,12 +73,14 @@ export function AgencyIncidentsManager({
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {localIncidents.map((incident) => (
             <Card key={incident.id} className="overflow-hidden">
-              <div className="relative h-36">
-                <img src={incident.imageUrl} alt="" className="h-full w-full object-cover" />
-                <div className="absolute right-2 top-2 flex gap-1">
-                  <SeverityBadge severity={incident.severity} />
+              <Link href={`/agency/incidents/${incident.id}`} className="block">
+                <div className="relative h-36">
+                  <img src={incident.imageUrl} alt="" className="h-full w-full object-cover" />
+                  <div className="absolute right-2 top-2 flex gap-1">
+                    <SeverityBadge severity={incident.severity} />
+                  </div>
                 </div>
-              </div>
+              </Link>
               <CardContent className="p-4">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="font-mono text-xs text-muted-foreground">{incident.incidentNumber}</span>
@@ -94,7 +97,7 @@ export function AgencyIncidentsManager({
                 {incident.aiSummary && (
                   <p className="mb-3 rounded bg-slate-50 p-2 text-xs text-muted-foreground">{incident.aiSummary}</p>
                 )}
-                <div className="flex items-center justify-between">
+                <div className="mb-3 flex items-center justify-between">
                   <StatusBadge status={incident.status} />
                   <Select
                     value={incident.status}
@@ -115,6 +118,12 @@ export function AgencyIncidentsManager({
                     </SelectContent>
                   </Select>
                 </div>
+                <Link href={`/agency/incidents/${incident.id}`}>
+                  <Button variant="outline" size="sm" className="w-full gap-1">
+                    مشاهده جزئیات و مسیریابی
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           ))}
