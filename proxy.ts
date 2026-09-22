@@ -39,6 +39,16 @@ async function getUser(req: NextRequest) {
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Field operators use their own signed session. Authentication and
+  // assignment ownership are enforced inside the operator pages and APIs.
+  if (
+    pathname === "/operator" ||
+    pathname.startsWith("/operator/") ||
+    pathname.startsWith("/api/operator/")
+  ) {
+    return NextResponse.next();
+  }
+
   // API auth check
   if (pathname.startsWith("/api/")) {
     const isPublicApi = PUBLIC_API_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));

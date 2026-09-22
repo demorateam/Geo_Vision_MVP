@@ -17,27 +17,58 @@ model User {
   incidents Incident[] @relation("ReporterIncidents")
 }
 
+model Operator {
+  id            String     @id @default(cuid())
+  name          String
+  phone         String
+  personnelCode String     @unique
+  agency        String
+  status        String     @default("AVAILABLE")
+  vehicle       String?
+  pinHash       String?
+  pinSalt       String?
+  isActive      Boolean    @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime   @default(now())
+  incidents     Incident[] @relation("AssignedOperatorIncidents")
+
+  @@index([agency])
+  @@index([status])
+}
+
 model Incident {
-  id             String                  @id @default(cuid())
-  incidentNumber String                  @unique
-  reporterId     String
-  imageUrl       String
-  description    String
-  latitude       Float
-  longitude      Float
-  region         String
-  incidentType   String
-  severity       String                  @default("Low")
-  colorCode      String                  @default("Green")
-  aiSummary      String?
-  status         String                  @default("PENDING")
-  createdAt      DateTime                @default(now())
-  updatedAt      DateTime                @updatedAt
-  reporter       User                    @relation("ReporterIncidents", fields: [reporterId], references: [id])
-  agencies       IncidentAgency[]
-  statusHistory  IncidentStatusHistory[]
+  id                 String                  @id @default(cuid())
+  incidentNumber     String                  @unique
+  reporterId         String
+  assignedOperatorId String?
+  imageUrl           String
+  description        String
+  latitude           Float
+  longitude          Float
+  address            String?
+  region             String
+  incidentType       String
+  severity           String                  @default("Low")
+  colorCode          String                  @default("Green")
+  aiSummary          String?
+  status             String                  @default("PENDING")
+  assignedAt         DateTime?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  acceptedAt         DateTime?
+  arrivedAt          DateTime?
+  completedAt        DateTime?
+  completionNote     String?
+  enRouteAt          DateTime?
+  operatorStatus     String?
+  workStartedAt      DateTime?
+  assignedOperator   Operator?               @relation("AssignedOperatorIncidents", fields: [assignedOperatorId], references: [id])
+  reporter           User                    @relation("ReporterIncidents", fields: [reporterId], references: [id])
+  agencies           IncidentAgency[]
+  statusHistory      IncidentStatusHistory[]
 
   @@index([reporterId])
+  @@index([assignedOperatorId])
   @@index([status])
   @@index([severity])
   @@index([region])

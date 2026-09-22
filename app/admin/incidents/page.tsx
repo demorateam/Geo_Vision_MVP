@@ -11,7 +11,11 @@ export default async function AdminIncidentsPage() {
   if (!session || session.role !== "ADMIN") redirect("/dashboard");
 
   const incidents = await prisma.incident.findMany({
-    include: { reporter: { select: { name: true } }, agencies: true },
+    include: {
+      reporter: { select: { name: true } },
+      agencies: true,
+      assignedOperator: true,
+    },
     orderBy: { createdAt: "desc" },
   });
 

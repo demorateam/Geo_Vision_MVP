@@ -1,6 +1,16 @@
 export type Role = "CITIZEN" | "ADMIN" | "AGENCY";
 export type IncidentStatus = "PENDING" | "IN_PROGRESS" | "RESOLVED";
 export type Severity = "Low" | "Medium" | "High" | "Critical";
+export type OperatorAvailability = "AVAILABLE" | "OFF_DUTY";
+export type OperatorMissionStatus =
+  "ASSIGNED" | "ACCEPTED" | "EN_ROUTE" | "ARRIVED" | "WORKING" | "COMPLETED";
+
+export interface OperatorSession {
+  id: string;
+  name: string;
+  personnelCode: string;
+  agency: string;
+}
 
 export interface SessionUser {
   id: string;
@@ -10,24 +20,46 @@ export interface SessionUser {
   agency?: string | null;
 }
 
+export interface AssignedOperator {
+  id: string;
+  name: string;
+  phone: string;
+  personnelCode: string;
+  agency: string;
+  status: string;
+  vehicle: string | null;
+}
+
 export interface IncidentWithRelations {
   id: string;
   incidentNumber: string;
   reporterId: string;
+  assignedOperatorId: string | null;
   imageUrl: string;
   description: string;
   latitude: number;
   longitude: number;
+
+  address: string | null;
   region: string;
   incidentType: string;
   severity: Severity;
   colorCode: string;
   aiSummary: string | null;
   status: IncidentStatus;
+  assignedAt: string | null;
+  operatorStatus: OperatorMissionStatus | null;
+  acceptedAt: string | null;
+  enRouteAt: string | null;
+  arrivedAt: string | null;
+  workStartedAt: string | null;
+  completedAt: string | null;
+  completionNote: string | null;
   createdAt: string;
   updatedAt: string;
   reporter: { id: string; name: string; phone: string };
   agencies: { id: string; agencyName: string; assignedAt: string }[];
+  assignedOperator: AssignedOperator | null;
 }
 
 export interface AIAnalysisResult {

@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Shield, ArrowRight, Phone, User } from "lucide-react";
+import { Shield, ArrowRight, Phone, User, HardHat } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,9 @@ import {
 
 const RequestSchema = z.object({
   name: z.string().min(2, "نام حداقل ۲ کاراکتر"),
-  phone: z.string().regex(/^09\d{9}$/, "شماره موبایل معتبر وارد کنید (۰۹xxxxxxxxx)"),
+  phone: z
+    .string()
+    .regex(/^09\d{9}$/, "شماره موبایل معتبر وارد کنید (۰۹xxxxxxxxx)"),
 });
 
 type RequestValues = z.infer<typeof RequestSchema>;
@@ -29,7 +31,11 @@ type Portal = "citizen" | "admin";
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100" />}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100" />
+      }
+    >
       <LoginContent />
     </Suspense>
   );
@@ -93,12 +99,15 @@ function LoginContent() {
       setPhone(data.phone);
       setName(data.name);
       setStep("verify");
-      toast.success(result.demoOtp ? `کد آزمایشی: ${result.demoOtp}` : result.message, {
-        description: result.demoOtp
-          ? "این کد فقط برای نسخه MVP نمایش داده می‌شود"
-          : "کد پیامک‌شده را وارد کنید",
-        duration: 8000,
-      });
+      toast.success(
+        result.demoOtp ? `کد آزمایشی: ${result.demoOtp}` : result.message,
+        {
+          description: result.demoOtp
+            ? "این کد فقط برای نسخه MVP نمایش داده می‌شود"
+            : "کد پیامک‌شده را وارد کنید",
+          duration: 8000,
+        },
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "خطا در ارسال کد");
     } finally {
@@ -190,12 +199,18 @@ function LoginContent() {
                   <User className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="name"
-                    placeholder={isAdminPortal ? "نام مدیر یا اپراتور" : "مثال: علی رضایی"}
+                    placeholder={
+                      isAdminPortal ? "نام مدیر یا اپراتور" : "مثال: علی رضایی"
+                    }
                     className="pr-9"
                     {...register("name")}
                   />
                 </div>
-                {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+                {errors.name && (
+                  <p className="text-xs text-destructive">
+                    {errors.name.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -210,7 +225,11 @@ function LoginContent() {
                     {...register("phone")}
                   />
                 </div>
-                {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
+                {errors.phone && (
+                  <p className="text-xs text-destructive">
+                    {errors.phone.message}
+                  </p>
+                )}
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
@@ -229,6 +248,14 @@ function LoginContent() {
               </Link>
 
               <Link
+                href="/operator/login"
+                className="flex items-center justify-center gap-1 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
+              >
+                <HardHat className="h-4 w-4" />
+                ورود مأموران عملیاتی
+              </Link>
+
+              <Link
                 href="/"
                 className="flex items-center justify-center gap-1 text-sm text-muted-foreground hover:text-foreground"
               >
@@ -242,7 +269,9 @@ function LoginContent() {
                 <Label>کد تایید ۵ رقمی</Label>
                 <Input
                   value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                  onChange={(e) =>
+                    setCode(e.target.value.replace(/\D/g, "").slice(0, 5))
+                  }
                   placeholder="-----"
                   className="text-center text-2xl tracking-widest"
                   inputMode="numeric"

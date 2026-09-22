@@ -304,7 +304,7 @@ export default function Home() {
                       "تشخیص رخداد شهری",
                     ]}
                   />
-                </span>
+                </span> 
               </h1>
 
               <div className="mt-12 flex flex-col gap-3 md:mt-14 sm:flex-row">
@@ -324,7 +324,17 @@ export default function Home() {
                     variant="outline"
                     className="h-14 border-white/20 bg-white/5 px-7 text-lg text-white hover:bg-white/10 hover:text-white"
                   >
-                    ورود به پنل مدیریت
+                   ستاد فرماندهی
+                  </Button>
+                </Link>
+
+                <Link href="https://geovision.hosha.ir/dashboard/">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="h-14 border-white/20 bg-white/5 px-7 text-lg text-white hover:bg-white/10 hover:text-white"
+                  >
+                   داشبورد با داده های تستی
                   </Button>
                 </Link>
               </div>
@@ -911,7 +921,7 @@ export default function Home() {
                     variant="outline"
                     className="h-14 border-white/30 bg-transparent px-7 text-white hover:bg-white/10 hover:text-white"
                   >
-                    ورود به پنل مدیریت
+                    ستاد فرماندهی
                   </Button>
                 </Link>
               </div>

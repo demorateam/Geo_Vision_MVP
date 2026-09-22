@@ -4,6 +4,7 @@ import { requireAuth, requireRole } from "@/lib/auth";
 import { z } from "zod";
 import { randomInt } from "crypto";
 import { AGENCY_LIST } from "@/types";
+import { reverseGeocode } from "@/lib/neshan";
 
 const CreateSchema = z.object({
   imageUrl: z.string().startsWith("/uploads/", "مسیر تصویر نامعتبر است"),
@@ -48,6 +49,7 @@ export async function POST(req: Request) {
 
     const datePart = new Date().toISOString().slice(2, 10).replace(/-/g, "");
     const incidentNumber = `INC-${datePart}-${randomInt(100000, 1000000)}`;
+    const address = await reverseGeocode(data.latitude, data.longitude);
 
     const incident = await prisma.incident.create({
       data: {
@@ -57,6 +59,7 @@ export async function POST(req: Request) {
         description: data.description,
         latitude: data.latitude,
         longitude: data.longitude,
+        address,
         region: data.region ?? "نامشخص",
         incidentType: data.incidentType ?? "نامشخص",
         severity: data.severity ?? "Medium",
@@ -68,6 +71,7 @@ export async function POST(req: Request) {
       },
       include: { agencies: true },
     });
+
 
     await prisma.incidentStatusHistory.create({
       data: { incidentId: incident.id, oldStatus: null, newStatus: "PENDING" },

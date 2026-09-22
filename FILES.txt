@@ -1,0 +1,14 @@
+app/admin/operators/[id]/page.tsx
+app/api/incidents/route.ts
+app/page.tsx
+components/dashboard/AgencyIncidentDetail.tsx
+components/dashboard/OperatorManagement.tsx
+components/dashboard/OperatorPerformanceDetail.tsx
+components/operator/OperatorMissionDetail.tsx
+lib/neshan.ts
+prisma/migrations/20260922000000_baseline_operator_sync/migration.sql
+prisma/migrations/20260922105115_add_incident_address/migration.sql
+prisma/schema.prisma
+proxy.ts
+scripts/backfill-incident-addresses.ts
+types/index.ts

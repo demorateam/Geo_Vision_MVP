@@ -17,6 +17,7 @@ import {
   Building2,
   User as UserIcon,
   ChevronDown,
+  UsersRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -32,12 +33,38 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "داشبورد", icon: LayoutDashboard, roles: ["CITIZEN", "ADMIN", "AGENCY"] },
+  {
+    href: "/dashboard",
+    label: "داشبورد",
+    icon: LayoutDashboard,
+    roles: ["CITIZEN", "ADMIN", "AGENCY"],
+  },
   { href: "/report", label: "ثبت رخداد", icon: FilePlus, roles: ["CITIZEN"] },
-  { href: "/my-reports", label: "گزارش‌های من", icon: ListChecks, roles: ["CITIZEN"] },
-  { href: "/admin/incidents", label: "مدیریت رخدادها", icon: ListChecks, roles: ["ADMIN"] },
+  {
+    href: "/my-reports",
+    label: "گزارش‌های من",
+    icon: ListChecks,
+    roles: ["CITIZEN"],
+  },
+  {
+    href: "/admin/incidents",
+    label: "مدیریت رخدادها",
+    icon: ListChecks,
+    roles: ["ADMIN"],
+  },
+  {
+    href: "/admin/operators",
+    label: "مدیریت اپراتورها",
+    icon: UsersRound,
+    roles: ["ADMIN"],
+  },
   { href: "/admin/map", label: "نقشه رخدادها", icon: Map, roles: ["ADMIN"] },
-  { href: "/admin/heatmap", label: "نقشه حرارتی", icon: Flame, roles: ["ADMIN"] },
+  {
+    href: "/admin/heatmap",
+    label: "نقشه حرارتی",
+    icon: Flame,
+    roles: ["ADMIN"],
+  },
   {
     href: "/admin/organizations",
     label: "سازمان‌ها",
@@ -55,7 +82,12 @@ const NAV_ITEMS: NavItem[] = [
       { href: "/admin/organizations/fire", label: "آتش نشانی" },
     ],
   },
-  { href: "/agency/incidents", label: "رخدادهای محول شده", icon: Building2, roles: ["AGENCY"] },
+  {
+    href: "/agency/incidents",
+    label: "رخدادهای محول شده",
+    icon: Building2,
+    roles: ["AGENCY"],
+  },
 ];
 
 export function DashboardShell({
@@ -71,7 +103,12 @@ export function DashboardShell({
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const items = NAV_ITEMS.filter((item) => item.roles.includes(user.role));
-  const roleLabel = user.role === "ADMIN" ? "مدیر سیستم" : user.role === "AGENCY" ? `اپراتور ${user.agency ?? ""}` : "شهروند";
+  const roleLabel =
+    user.role === "ADMIN"
+      ? "مدیر سیستم"
+      : user.role === "AGENCY"
+        ? `اپراتور ${user.agency ?? ""}`
+        : "شهروند";
 
   // Keep the page behind the mobile navigation fixed while the sidebar is open.
   useEffect(() => {
@@ -87,7 +124,7 @@ export function DashboardShell({
 
   const toggleExpand = (href: string) => {
     setExpandedItems((prev) =>
-      prev.includes(href) ? prev.filter((h) => h !== href) : [...prev, href]
+      prev.includes(href) ? prev.filter((h) => h !== href) : [...prev, href],
     );
   };
 
@@ -143,7 +180,9 @@ export function DashboardShell({
 
           <nav className="flex-1 space-y-1 overflow-y-auto p-3">
             {items.map((item) => {
-              const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+              const active =
+                pathname === item.href ||
+                (item.href !== "/dashboard" && pathname.startsWith(item.href));
               const isExpanded = expandedItems.includes(item.href);
 
               if (item.children) {
@@ -161,9 +200,19 @@ export function DashboardShell({
                       {active && (
                         <span className="absolute right-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-gradient-to-b from-cyan-300 to-blue-500 shadow-[0_0_10px_rgba(56,189,248,0.8)]" />
                       )}
-                      <item.icon className={cn("h-4 w-4 transition-transform duration-200 group-hover:scale-110", active && "text-cyan-300")} />
+                      <item.icon
+                        className={cn(
+                          "h-4 w-4 transition-transform duration-200 group-hover:scale-110",
+                          active && "text-cyan-300",
+                        )}
+                      />
                       <span className="flex-1 text-right">{item.label}</span>
-                      <ChevronDown className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-180")} />
+                      <ChevronDown
+                        className={cn(
+                          "h-4 w-4 transition-transform",
+                          isExpanded && "rotate-180",
+                        )}
+                      />
                     </button>
                     {isExpanded && (
                       <div className="mr-7 mt-1 space-y-1 border-r border-white/10 pr-3">
@@ -203,7 +252,12 @@ export function DashboardShell({
                   {active && (
                     <span className="absolute right-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-gradient-to-b from-cyan-300 to-blue-500 shadow-[0_0_10px_rgba(56,189,248,0.8)]" />
                   )}
-                  <item.icon className={cn("h-4 w-4 transition-transform duration-200 group-hover:scale-110", active && "text-cyan-300")} />
+                  <item.icon
+                    className={cn(
+                      "h-4 w-4 transition-transform duration-200 group-hover:scale-110",
+                      active && "text-cyan-300",
+                    )}
+                  />
                   {item.label}
                 </Link>
               );
@@ -218,7 +272,9 @@ export function DashboardShell({
                 </div>
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-white">{user.name}</p>
+                <p className="truncate text-sm font-medium text-white">
+                  {user.name}
+                </p>
                 <p className="truncate text-xs text-slate-400">{roleLabel}</p>
               </div>
             </div>
@@ -261,12 +317,20 @@ export function DashboardShell({
           <div className="w-5" />
         </header>
 
-        <main className="min-w-0 max-w-full flex-1 overflow-x-auto p-4 md:p-6 lg:p-8">{children}</main>
+        <main className="min-w-0 max-w-full flex-1 overflow-x-auto p-4 md:p-6 lg:p-8">
+          {children}
+        </main>
       </div>
 
       <style jsx global>{`
         .sidebar-gradient {
-          background: linear-gradient(160deg, #0a1a35 0%, #061126 40%, #0c1330 70%, #170f30 100%);
+          background: linear-gradient(
+            160deg,
+            #0a1a35 0%,
+            #061126 40%,
+            #0c1330 70%,
+            #170f30 100%
+          );
           background-size: 200% 200%;
           animation: sidebarGradientShift 14s ease infinite;
         }

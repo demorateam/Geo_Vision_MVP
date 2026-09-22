@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { AgencyIncidentDetail } from "@/components/dashboard/AgencyIncidentDetail";
 
-export const dynamic = "force-dynamic"; 
+export const dynamic = "force-dynamic";
 
 export default async function AgencyIncidentDetailPage({
   params,
@@ -20,14 +20,17 @@ export default async function AgencyIncidentDetailPage({
     include: {
       reporter: { select: { id: true, name: true, phone: true } },
       agencies: true,
+      assignedOperator: true,
       statusHistory: { orderBy: { createdAt: "asc" } },
     },
   });
 
   if (!incident) notFound();
-
-  const belongsToAgency = incident.agencies.some((a) => a.agencyName === session.agency);
-  if (!belongsToAgency) redirect("/agency/incidents");
+  if (
+    !incident.agencies.some((agency) => agency.agencyName === session.agency)
+  ) {
+    redirect("/agency/incidents");
+  }
 
   return (
     <DashboardShell user={session}>
