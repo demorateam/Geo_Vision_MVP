@@ -139,7 +139,7 @@ export function DashboardShell({
     <div className="flex min-h-screen w-full min-w-0 overflow-x-hidden bg-slate-50">
       <aside
         className={cn(
-          "sidebar-gradient fixed inset-y-0 !right-0 !left-auto z-[2000] w-[min(20rem,88vw)] transform overflow-hidden border-l border-white/10 transition-transform duration-200 lg:static lg:z-40 lg:w-64 lg:translate-x-0",
+          "sidebar-gradient fixed inset-y-0 !right-0 !left-auto z-[2000] w-[min(20rem,88vw)] transform overflow-hidden border-l border-white/10 transition-transform duration-200 lg:z-40 lg:w-64 lg:translate-x-0",
           sidebarOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0",
         )}
       >
@@ -156,7 +156,7 @@ export function DashboardShell({
         <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-white/[0.08] to-transparent" />
 
         <div className="relative z-10 flex h-full flex-col">
-          <div className="flex h-16 items-center justify-between border-b border-white/10 px-4">
+          <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-4">
             <div className="flex items-center gap-2.5">
               <div className="relative flex h-9 w-9 items-center justify-center">
                 <div className="absolute inset-0 animate-pulse rounded-xl bg-blue-500/40 blur-md [animation-duration:3s]" />
@@ -264,7 +264,7 @@ export function DashboardShell({
             })}
           </nav>
 
-          <div className="border-t border-white/10 p-3">
+          <div className="shrink-0 border-t border-white/10 p-3">
             <div className="mb-2 flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 backdrop-blur-sm">
               <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-violet-500 p-[2px]">
                 <div className="flex h-full w-full items-center justify-center rounded-full bg-[#0a1224]">
@@ -300,7 +300,7 @@ export function DashboardShell({
         />
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden lg:pr-0">
+      <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden lg:mr-64">
         <header className="flex h-16 items-center justify-between border-b bg-white px-4 lg:hidden">
           <button
             type="button"

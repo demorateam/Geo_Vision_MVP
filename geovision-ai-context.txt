@@ -1,0 +1,2726 @@
+
+========================================
+FILE: package.json
+========================================
+
+{
+  "name": "uemp-mobile-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start -H 0.0.0.0",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:reset": "prisma migrate reset --force",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@fontsource-variable/estedad": "^5.3.0",
+    "@hookform/resolvers": "^3.9.0",
+    "@neshan-maps-platform/leaflet": "^1.0.8",
+    "@prisma/client": "^5.22.0",
+    "@radix-ui/react-accordion": "1.2.20",
+    "@radix-ui/react-alert-dialog": "1.1.23",
+    "@radix-ui/react-aspect-ratio": "1.1.15",
+    "@radix-ui/react-avatar": "1.2.6",
+    "@radix-ui/react-checkbox": "1.3.11",
+    "@radix-ui/react-collapsible": "1.1.20",
+    "@radix-ui/react-context-menu": "2.3.7",
+    "@radix-ui/react-dialog": "1.1.23",
+    "@radix-ui/react-dropdown-menu": "2.1.24",
+    "@radix-ui/react-hover-card": "1.1.23",
+    "@radix-ui/react-label": "2.1.15",
+    "@radix-ui/react-menubar": "1.1.24",
+    "@radix-ui/react-navigation-menu": "1.2.22",
+    "@radix-ui/react-popover": "1.1.23",
+    "@radix-ui/react-progress": "1.1.16",
+    "@radix-ui/react-radio-group": "1.4.7",
+    "@radix-ui/react-scroll-area": "1.2.18",
+    "@radix-ui/react-select": "2.3.7",
+    "@radix-ui/react-separator": "1.1.15",
+    "@radix-ui/react-slider": "1.4.7",
+    "@radix-ui/react-slot": "1.3.3",
+    "@radix-ui/react-switch": "1.3.7",
+    "@radix-ui/react-tabs": "1.1.21",
+    "@radix-ui/react-toast": "1.2.23",
+    "@radix-ui/react-toggle": "1.1.18",
+    "@radix-ui/react-toggle-group": "1.1.19",
+    "@radix-ui/react-tooltip": "1.2.16",
+    "@types/node": "20.6.2",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "autoprefixer": "10.4.15",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "cmdk": "1.1.1",
+    "date-fns": "^3.6.0",
+    "embla-carousel-react": "8.6.0",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "16.3.0",
+    "exifr": "^7.1.3",
+    "input-otp": "1.4.2",
+    "jose": "^6.2.7",
+    "jsonwebtoken": "^9.0.3",
+    "leaflet": "^1.9.4",
+    "leaflet.heat": "^0.2.0",
+    "lucide-react": "^0.446.0",
+    "next": "16.3.0",
+    "next-themes": "0.4.6",
+    "postcss": "8.5.26",
+    "prisma": "^5.22.0",
+    "react": "19.2.8",
+    "react-day-picker": "10.0.1",
+    "react-dom": "19.2.8",
+    "react-hook-form": "^7.53.0",
+    "react-leaflet": "5.0.0",
+    "react-resizable-panels": "3.0.6",
+    "recharts": "2.15.4",
+    "simpleheat": "^0.4.0",
+    "sonner": "2.0.8",
+    "tailwind-merge": "^2.5.2",
+    "tailwindcss": "3.3.3",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.9.3",
+    "vaul": "1.1.2",
+    "zod": "^3.23.8"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/leaflet": "^1.9.22",
+    "@types/leaflet.heat": "^0.2.5",
+    "tsx": "^4.23.1"
+  }
+}
+
+
+
+
+========================================
+FILE: proxy.ts
+========================================
+
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { jwtVerify } from "jose";
+
+const COOKIE_NAME = "urban_session";
+
+const PUBLIC_PATHS = ["/", "/login", "/register", "/offline"];
+const PUBLIC_API_PATHS = ["/api/auth", "/api/auth/me", "/api/health"];
+const PUBLIC_ASSET = /\.(?:css|js|map|png|jpg|jpeg|webp|svg|ico|woff2?|json|webmanifest)$/i;
+
+function isPublic(pathname: string): boolean {
+  return PUBLIC_PATHS.includes(pathname) ||
+    pathname.startsWith("/_next/") ||
+    pathname.startsWith("/uploads/") ||
+    pathname.startsWith("/images/") ||
+    PUBLIC_ASSET.test(pathname);
+}
+
+function jwtSecret(): Uint8Array {
+  const secret = process.env.JWT_SECRET;
+  if (secret && secret.length >= 32) return new TextEncoder().encode(secret);
+  if (process.env.NODE_ENV !== "production") {
+    return new TextEncoder().encode("fallback-development-secret-change-me");
+  }
+  throw new Error("JWT_SECRET_MISSING");
+}
+
+async function getUser(req: NextRequest) {
+  const token = req.cookies.get(COOKIE_NAME)?.value;
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, jwtSecret());
+    return payload as { id: string; role: string };
+  } catch {
+    return null;
+  }
+}
+
+export async function proxy(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  // Field operators use their own signed session. Authentication and
+  // assignment ownership are enforced inside the operator pages and APIs.
+  if (
+    pathname === "/operator" ||
+    pathname.startsWith("/operator/") ||
+    pathname.startsWith("/api/operator/")
+  ) {
+    return NextResponse.next();
+  }
+
+  // API auth check
+  if (pathname.startsWith("/api/")) {
+    const isPublicApi = PUBLIC_API_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+    if (!isPublicApi) {
+      const user = await getUser(req);
+      if (!user) {
+        return NextResponse.json({ error: "احراز هویت لازم است" }, { status: 401 });
+      }
+    }
+    return NextResponse.next();
+  }
+
+  // Page protection
+  if (isPublic(pathname)) {
+    return NextResponse.next();
+  }
+
+  const user = await getUser(req);
+  if (!user) {
+    const loginUrl = req.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    loginUrl.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Role-based protection
+  if (pathname.startsWith("/admin") && user.role !== "ADMIN") {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
+  }
+  if (pathname.startsWith("/agency") && user.role !== "AGENCY") {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};
+
+
+
+
+========================================
+FILE: lib/auth.ts
+========================================
+
+import { cookies } from "next/headers";
+import jwt from "jsonwebtoken";
+import type { SessionUser } from "@/types";
+
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (secret && secret.length >= 32) return secret;
+  if (process.env.NODE_ENV !== "production") return "fallback-development-secret-change-me";
+  throw new Error("JWT_SECRET_MISSING");
+}
+const COOKIE_NAME = "urban_session";
+const MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+
+export function createSession(user: SessionUser): string {
+  return jwt.sign(user, getJwtSecret(), { expiresIn: MAX_AGE });
+}
+
+export async function setSessionCookie(user: SessionUser): Promise<void> {
+  const token = createSession(user);
+  const cookieStore = await cookies();
+  cookieStore.set(COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: MAX_AGE,
+  });
+}
+
+export async function clearSessionCookie(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.delete(COOKIE_NAME);
+}
+
+export async function getSession(): Promise<SessionUser | null> {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(COOKIE_NAME)?.value;
+    if (!token) return null;
+    const payload = jwt.verify(token, getJwtSecret()) as SessionUser;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+export async function requireAuth(): Promise<SessionUser> {
+  const session = await getSession();
+  if (!session) {
+    throw new Error("UNAUTHORIZED");
+  }
+  return session;
+}
+
+export async function requireRole(...roles: SessionUser["role"][]): Promise<SessionUser> {
+  const session = await requireAuth();
+  if (!roles.includes(session.role)) {
+    throw new Error("FORBIDDEN");
+  }
+  return session;
+}
+
+export const SESSION_COOKIE_NAME = COOKIE_NAME;
+
+
+
+
+========================================
+FILE: lib/prisma.ts
+========================================
+
+import { PrismaClient } from "@prisma/client";
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+  });
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+
+
+
+========================================
+FILE: app/api/stats/route.ts
+========================================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireRole } from "@/lib/auth";
+
+export async function GET() {
+  try {
+    await requireRole("ADMIN");
+
+    const [total, pending, inProgress, resolved] = await Promise.all([
+      prisma.incident.count(),
+      prisma.incident.count({ where: { status: "PENDING" } }),
+      prisma.incident.count({ where: { status: "IN_PROGRESS" } }),
+      prisma.incident.count({ where: { status: "RESOLVED" } }),
+    ]);
+
+    const byRegion = await prisma.incident.groupBy({
+      by: ["region"],
+      _count: { _all: true },
+      orderBy: { _count: { region: "desc" } },
+    });
+
+    const bySeverity = await prisma.incident.groupBy({
+      by: ["severity"],
+      _count: { _all: true },
+    });
+
+    const byAgencyRaw = await prisma.incidentAgency.groupBy({
+      by: ["agencyName"],
+      _count: { _all: true },
+      orderBy: { _count: { agencyName: "desc" } },
+    });
+
+    const recent = await prisma.incident.findMany({
+      take: 5,
+      orderBy: { createdAt: "desc" },
+      include: { agencies: true, reporter: { select: { name: true } } },
+    });
+
+    return NextResponse.json({
+      counts: { total, pending, inProgress, resolved },
+      byRegion: byRegion.map((r) => ({ region: r.region, count: r._count._all })),
+      bySeverity: bySeverity.map((s) => ({ severity: s.severity, count: s._count._all })),
+      byAgency: byAgencyRaw.map((a) => ({ agency: a.agencyName, count: a._count._all })),
+      recent,
+    });
+  } catch (e) {
+    if (e instanceof Error && e.message === "UNAUTHORIZED") {
+      return NextResponse.json({ error: "احراز هویت لازم است" }, { status: 401 });
+    }
+    if (e instanceof Error && e.message === "FORBIDDEN") {
+      return NextResponse.json({ error: "دسترسی مجاز نیست" }, { status: 403 });
+    }
+    return NextResponse.json({ error: "خطای سرور" }, { status: 500 });
+  }
+}
+
+
+
+
+========================================
+FILE: components/dashboard/DashboardShell.tsx
+========================================
+
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import {
+  Shield,
+  LayoutDashboard,
+  FilePlus,
+  ListChecks,
+  Map,
+  Flame,
+  LogOut,
+  Menu,
+  X,
+  Building2,
+  User as UserIcon,
+  ChevronDown,
+  UsersRound,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import type { SessionUser } from "@/types";
+import { STATUS_LABELS } from "@/types";
+
+interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  roles: SessionUser["role"][];
+  children?: { href: string; label: string }[];
+}
+
+const NAV_ITEMS: NavItem[] = [
+  {
+    href: "/dashboard",
+    label: "داشبورد",
+    icon: LayoutDashboard,
+    roles: ["CITIZEN", "ADMIN", "AGENCY"],
+  },
+  { href: "/report", label: "ثبت رخداد", icon: FilePlus, roles: ["CITIZEN"] },
+  {
+    href: "/my-reports",
+    label: "گزارش‌های من",
+    icon: ListChecks,
+    roles: ["CITIZEN"],
+  },
+  {
+    href: "/admin/incidents",
+    label: "مدیریت رخدادها",
+    icon: ListChecks,
+    roles: ["ADMIN"],
+  },
+  {
+    href: "/admin/operators",
+    label: "مدیریت اپراتورها",
+    icon: UsersRound,
+    roles: ["ADMIN"],
+  },
+  { href: "/admin/map", label: "نقشه رخدادها", icon: Map, roles: ["ADMIN"] },
+  {
+    href: "/admin/heatmap",
+    label: "نقشه حرارتی",
+    icon: Flame,
+    roles: ["ADMIN"],
+  },
+  {
+    href: "/admin/organizations",
+    label: "سازمان‌ها",
+    icon: Building2,
+    roles: ["ADMIN"],
+    children: [
+      { href: "/admin/organizations/municipality", label: "شهرداری" },
+      { href: "/admin/organizations/security", label: "نهادهای امنیتی" },
+      { href: "/admin/organizations/telecom", label: "مخابرات" },
+      { href: "/admin/organizations/water", label: "اداره آب و فاضلاب" },
+      { href: "/admin/organizations/electricity", label: "اداره برق" },
+      { href: "/admin/organizations/gas", label: "اداره گاز" },
+      { href: "/admin/organizations/emergency", label: "اورژانس" },
+      { href: "/admin/organizations/police", label: "پلیس" },
+      { href: "/admin/organizations/fire", label: "آتش نشانی" },
+    ],
+  },
+  {
+    href: "/agency/incidents",
+    label: "رخدادهای محول شده",
+    icon: Building2,
+    roles: ["AGENCY"],
+  },
+];
+
+export function DashboardShell({
+  user,
+  children,
+}: {
+  user: SessionUser;
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+
+  const items = NAV_ITEMS.filter((item) => item.roles.includes(user.role));
+  const roleLabel =
+    user.role === "ADMIN"
+      ? "مدیر سیستم"
+      : user.role === "AGENCY"
+        ? `اپراتور ${user.agency ?? ""}`
+        : "شهروند";
+
+  // Keep the page behind the mobile navigation fixed while the sidebar is open.
+  useEffect(() => {
+    if (!sidebarOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [sidebarOpen]);
+
+  const toggleExpand = (href: string) => {
+    setExpandedItems((prev) =>
+      prev.includes(href) ? prev.filter((h) => h !== href) : [...prev, href],
+    );
+  };
+
+  const handleLogout = async () => {
+    await fetch("/api/auth", { method: "DELETE" });
+    toast.success("خروج موفقیت‌آمیز بود");
+    router.push("/");
+    router.refresh();
+  };
+
+  return (
+    <div className="flex min-h-screen w-full min-w-0 overflow-x-hidden bg-slate-50">
+      <aside
+        className={cn(
+          "sidebar-gradient fixed inset-y-0 !right-0 !left-auto z-[2000] w-[min(20rem,88vw)] transform overflow-hidden border-l border-white/10 transition-transform duration-200 lg:static lg:z-40 lg:w-64 lg:translate-x-0",
+          sidebarOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0",
+        )}
+      >
+        {/* Animated glow orbs */}
+        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 animate-pulse rounded-full bg-blue-500/25 blur-[90px] [animation-duration:6s]" />
+        <div className="pointer-events-none absolute -left-24 top-1/3 h-56 w-56 animate-pulse rounded-full bg-violet-500/20 blur-[90px] [animation-delay:1.5s] [animation-duration:8s]" />
+        <div className="pointer-events-none absolute -bottom-10 right-1/4 h-60 w-60 animate-pulse rounded-full bg-cyan-400/15 blur-[100px] [animation-delay:3s] [animation-duration:7s]" />
+        <div className="pointer-events-none absolute -left-16 bottom-1/4 h-40 w-40 animate-[spin_28s_linear_infinite] rounded-full border border-dashed border-cyan-300/10" />
+
+        {/* Grid texture */}
+        <div className="pointer-events-none absolute inset-0 opacity-[0.15] [background-image:linear-gradient(to_right,rgba(96,165,250,0.15)_1px,transparent_1px),linear-gradient(to_bottom,rgba(96,165,250,0.15)_1px,transparent_1px)] [background-size:32px_32px]" />
+
+        {/* Top sheen */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-white/[0.08] to-transparent" />
+
+        <div className="relative z-10 flex h-full flex-col">
+          <div className="flex h-16 items-center justify-between border-b border-white/10 px-4">
+            <div className="flex items-center gap-2.5">
+              <div className="relative flex h-9 w-9 items-center justify-center">
+                <div className="absolute inset-0 animate-pulse rounded-xl bg-blue-500/40 blur-md [animation-duration:3s]" />
+                <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-400 via-blue-600 to-violet-600 shadow-lg shadow-blue-600/40">
+                  <Shield className="h-5 w-5 text-white" />
+                </div>
+              </div>
+              <span className="bg-gradient-to-l from-white to-slate-300 bg-clip-text text-sm font-bold text-transparent">
+                سامانه رخداد شهری
+              </span>
+            </div>
+            <button
+              type="button"
+              aria-label="بستن منو"
+              className="text-slate-300 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+            {items.map((item) => {
+              const active =
+                pathname === item.href ||
+                (item.href !== "/dashboard" && pathname.startsWith(item.href));
+              const isExpanded = expandedItems.includes(item.href);
+
+              if (item.children) {
+                return (
+                  <div key={item.href}>
+                    <button
+                      onClick={() => toggleExpand(item.href)}
+                      className={cn(
+                        "group relative flex w-full items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-sm transition-all duration-200",
+                        active
+                          ? "bg-gradient-to-r from-blue-500/25 via-blue-500/10 to-transparent font-medium text-blue-200 shadow-[inset_0_0_0_1px_rgba(96,165,250,0.25)]"
+                          : "text-slate-400 hover:bg-white/[0.06] hover:text-white",
+                      )}
+                    >
+                      {active && (
+                        <span className="absolute right-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-gradient-to-b from-cyan-300 to-blue-500 shadow-[0_0_10px_rgba(56,189,248,0.8)]" />
+                      )}
+                      <item.icon
+                        className={cn(
+                          "h-4 w-4 transition-transform duration-200 group-hover:scale-110",
+                          active && "text-cyan-300",
+                        )}
+                      />
+                      <span className="flex-1 text-right">{item.label}</span>
+                      <ChevronDown
+                        className={cn(
+                          "h-4 w-4 transition-transform",
+                          isExpanded && "rotate-180",
+                        )}
+                      />
+                    </button>
+                    {isExpanded && (
+                      <div className="mr-7 mt-1 space-y-1 border-r border-white/10 pr-3">
+                        {item.children.map((child) => (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            onClick={() => setSidebarOpen(false)}
+                            className={cn(
+                              "block rounded-lg px-3 py-2 text-sm transition-colors",
+                              pathname === child.href
+                                ? "bg-gradient-to-r from-blue-500/20 to-transparent font-medium text-blue-200"
+                                : "text-slate-400 hover:bg-white/[0.06] hover:text-white",
+                            )}
+                          >
+                            {child.label}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={cn(
+                    "group relative flex items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-sm transition-all duration-200",
+                    active
+                      ? "bg-gradient-to-r from-blue-500/25 via-blue-500/10 to-transparent font-medium text-blue-200 shadow-[inset_0_0_0_1px_rgba(96,165,250,0.25)]"
+                      : "text-slate-400 hover:bg-white/[0.06] hover:text-white",
+                  )}
+                >
+                  {active && (
+                    <span className="absolute right-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-gradient-to-b from-cyan-300 to-blue-500 shadow-[0_0_10px_rgba(56,189,248,0.8)]" />
+                  )}
+                  <item.icon
+                    className={cn(
+                      "h-4 w-4 transition-transform duration-200 group-hover:scale-110",
+                      active && "text-cyan-300",
+                    )}
+                  />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="border-t border-white/10 p-3">
+            <div className="mb-2 flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 backdrop-blur-sm">
+              <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-violet-500 p-[2px]">
+                <div className="flex h-full w-full items-center justify-center rounded-full bg-[#0a1224]">
+                  <UserIcon className="h-4 w-4 text-blue-300" />
+                </div>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-white">
+                  {user.name}
+                </p>
+                <p className="truncate text-xs text-slate-400">{roleLabel}</p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2 border-white/15 bg-white/[0.04] text-slate-200 hover:border-red-400/30 hover:bg-red-500/10 hover:text-red-300"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4" />
+              خروج
+            </Button>
+          </div>
+        </div>
+      </aside>
+
+      {sidebarOpen && (
+        <button
+          type="button"
+          aria-label="بستن منو"
+          className="fixed inset-0 z-[1990] bg-black/45 backdrop-blur-[1px] lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden lg:pr-0">
+        <header className="flex h-16 items-center justify-between border-b bg-white px-4 lg:hidden">
+          <button
+            type="button"
+            aria-label="باز کردن منو"
+            aria-expanded={sidebarOpen}
+            onClick={() => setSidebarOpen(true)}
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <div className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-blue-600" />
+            <span className="text-sm font-bold">سامانه رخداد شهری</span>
+          </div>
+          <div className="w-5" />
+        </header>
+
+        <main className="min-w-0 max-w-full flex-1 overflow-x-auto p-4 md:p-6 lg:p-8">
+          {children}
+        </main>
+      </div>
+
+      <style jsx global>{`
+        .sidebar-gradient {
+          background: linear-gradient(
+            160deg,
+            #0a1a35 0%,
+            #061126 40%,
+            #0c1330 70%,
+            #170f30 100%
+          );
+          background-size: 200% 200%;
+          animation: sidebarGradientShift 14s ease infinite;
+        }
+        @keyframes sidebarGradientShift {
+          0% {
+            background-position: 0% 0%;
+          }
+          50% {
+            background-position: 100% 100%;
+          }
+          100% {
+            background-position: 0% 0%;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+export { STATUS_LABELS };
+
+
+
+
+========================================
+FILE: app/admin/operators/page.tsx
+========================================
+
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
+import { DashboardShell } from "@/components/dashboard/DashboardShell";
+import { OperatorManagement } from "@/components/dashboard/OperatorManagement";
+
+export const dynamic = "force-dynamic";
+
+export default async function AdminOperatorsPage() {
+  const session = await getSession();
+  if (!session || session.role !== "ADMIN") redirect("/dashboard");
+
+  const [incidents, operators] = await Promise.all([
+    prisma.incident.findMany({
+      include: {
+        reporter: { select: { name: true, phone: true } },
+        agencies: true,
+        assignedOperator: true,
+      },
+      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+    }),
+    prisma.operator.findMany({
+      include: {
+        incidents: {
+          where: { status: { not: "RESOLVED" } },
+          select: { id: true, incidentNumber: true, incidentType: true },
+        },
+      },
+      orderBy: [{ agency: "asc" }, { name: "asc" }],
+    }),
+  ]);
+
+  return (
+    <DashboardShell user={session}>
+      <OperatorManagement incidents={incidents} operators={operators} />
+    </DashboardShell>
+  );
+}
+
+
+
+
+========================================
+FILE: components/dashboard/AdminDashboard.tsx
+========================================
+
+"use client";
+
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
+
+import {
+  ListChecks,
+  Clock3,
+  AlertCircle,
+  CheckCircle2,
+  TrendingUp,
+  Activity,
+  Building2,
+  ShieldAlert,
+  ArrowUpLeft,
+  Radio,
+  MapPin,
+} from "lucide-react";
+
+interface Stats {
+  counts: {
+    total: number;
+    pending: number;
+    inProgress: number;
+    resolved: number;
+  };
+
+  byRegion: {
+    region: string;
+    _count: {
+      _all: number;
+    };
+  }[];
+
+  bySeverity: {
+    severity: string;
+    _count: {
+      _all: number;
+    };
+  }[];
+
+  byAgency: {
+    agencyName: string;
+    _count: {
+      _all: number;
+    };
+  }[];
+}
+
+/* =========================================================
+   SEVERITY
+========================================================= */
+
+const SEVERITY_LABELS: Record<string, string> = {
+  Low: "کم",
+  Medium: "متوسط",
+  High: "زیاد",
+  Critical: "بحرانی",
+};
+
+const SEVERITY_COLORS: Record<string, string> = {
+  Low: "#22c55e",
+  Medium: "#eab308",
+  High: "#f97316",
+  Critical: "#ef4444",
+};
+
+/* =========================================================
+   AGENCY COLORS
+========================================================= */
+
+const AGENCY_COLORS = [
+  "#2563eb",
+  "#22c55e",
+  "#f97316",
+  "#ef4444",
+  "#a855f7",
+  "#06b6d4",
+  "#eab308",
+  "#ec4899",
+  "#64748b",
+];
+
+/* =========================================================
+   MAIN DASHBOARD
+========================================================= */
+
+export function AdminDashboard({ stats }: { stats: Stats }) {
+  /* =======================================================
+     REGION DATA
+  ======================================================== */
+
+  const regionData = stats.byRegion.map((r) => ({
+    name: r.region,
+    count: r._count._all,
+  }));
+
+  /* =======================================================
+     SEVERITY DATA
+
+     originalName برای پیدا کردن رنگ اصلی استفاده می‌شود.
+     name برای نمایش فارسی در نمودار و Legend استفاده می‌شود.
+  ======================================================== */
+
+  const severityData = stats.bySeverity.map((s) => ({
+    name: SEVERITY_LABELS[s.severity] ?? s.severity,
+    originalName: s.severity,
+    value: s._count._all,
+  }));
+
+  /* =======================================================
+     TOTAL SEVERITY
+  ======================================================== */
+
+  const totalSeverity = severityData.reduce(
+    (sum, item) => sum + item.value,
+    0
+  );
+
+  /* =======================================================
+     AGENCY DATA
+  ======================================================== */
+
+  const agencyData = stats.byAgency.map((a) => ({
+    name: a.agencyName,
+    count: a._count._all,
+  }));
+
+  return (
+    <main
+      dir="rtl"
+      className="min-h-screen bg-slate-50 p-5 md:p-7"
+    >
+      <div className="mx-auto max-w-[1800px]">
+
+        {/* =====================================================
+            HEADER
+        ====================================================== */}
+
+        <header className="mb-8">
+          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+
+            <div>
+              <div className="mb-3 flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-blue-600 shadow-lg shadow-blue-500/40" />
+
+                <span className="text-[11px] font-black tracking-[0.18em] text-blue-600">
+                  GEOVISION • CONTROL CENTER
+                </span>
+              </div>
+
+              <h1 className="text-3xl font-black tracking-tight text-slate-950 md:text-4xl">
+                پنل مدیریت
+              </h1>
+
+              <p className="mt-2 text-sm font-medium text-slate-500">
+                نمای کلی و تحلیل هوشمند رخدادهای شهری
+              </p>
+            </div>
+
+            {/* Live Status */}
+
+            <div
+              className="
+                flex
+                items-center
+                gap-3
+                rounded-2xl
+                border
+                border-slate-200
+                bg-white
+                px-5
+                py-3
+                shadow-sm
+              "
+            >
+              <div className="relative">
+                <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400 opacity-30" />
+
+                <span className="relative block h-2.5 w-2.5 rounded-full bg-emerald-500" />
+              </div>
+
+              <div>
+                <div className="text-xs font-black text-slate-800">
+                  سیستم فعال
+                </div>
+
+                <div className="mt-0.5 text-[10px] font-medium text-slate-400">
+                  پایش لحظه‌ای سامانه
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Header separator */}
+
+          <div className="mt-6 h-px bg-gradient-to-l from-transparent via-slate-300 to-transparent" />
+        </header>
+
+        {/* =====================================================
+            QUICK INFO
+        ====================================================== */}
+
+        <div className="mb-7 flex flex-wrap gap-3">
+
+          <InfoPill
+            icon={Radio}
+            text="سامانه آنلاین"
+          />
+
+          <InfoPill
+            icon={MapPin}
+            text="پایش مناطق شهری"
+          />
+
+          <InfoPill
+            icon={Activity}
+            text={`${stats.counts.total} رخداد ثبت شده`}
+          />
+
+        </div>
+
+        {/* =====================================================
+            STAT SECTION
+        ====================================================== */}
+
+        <section className="mb-10">
+
+          <SectionTitle
+            eyebrow="OVERVIEW"
+            title="وضعیت کلی رخدادها"
+            description="نمای سریع از وضعیت عملیاتی سامانه"
+          />
+
+          <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+
+            <PremiumStatCard
+              icon={ListChecks}
+              label="کل رخدادها"
+              value={stats.counts.total}
+              description="تمام رخدادهای ثبت‌شده"
+              color="blue"
+              index="01"
+            />
+
+            <PremiumStatCard
+              icon={Clock3}
+              label="در انتظار"
+              value={stats.counts.pending}
+              description="رخدادهای نیازمند بررسی"
+              color="amber"
+              index="02"
+            />
+
+            <PremiumStatCard
+              icon={AlertCircle}
+              label="در حال انجام"
+              value={stats.counts.inProgress}
+              description="رخدادهای در حال پیگیری"
+              color="orange"
+              index="03"
+            />
+
+            <PremiumStatCard
+              icon={CheckCircle2}
+              label="حل شده"
+              value={stats.counts.resolved}
+              description="رخدادهای به پایان رسیده"
+              color="green"
+              index="04"
+            />
+
+          </div>
+        </section>
+
+        {/* =====================================================
+            ANALYTICS
+        ====================================================== */}
+
+        <section>
+
+          <SectionTitle
+            eyebrow="ANALYTICS"
+            title="تحلیل و گزارش رخدادها"
+            description="تصویری جامع از پراکندگی و شدت رخدادهای شهری"
+          />
+
+          <div className="mt-5 grid grid-cols-1 gap-6 xl:grid-cols-2">
+
+            {/* =================================================
+                REGION CHART
+            ================================================== */}
+
+            <PremiumChartCard
+              title="رخدادها بر اساس منطقه"
+              description="پراکندگی تعداد رخدادهای ثبت‌شده در مناطق مختلف"
+              icon={TrendingUp}
+              accent="blue"
+              badge="REGION"
+            >
+
+              <ResponsiveContainer
+                width="100%"
+                height={340}
+              >
+
+                <BarChart
+                  data={regionData}
+                  margin={{
+                    top: 20,
+                    right: 10,
+                    left: 0,
+                    bottom: 20,
+                  }}
+                >
+
+                  <CartesianGrid
+                    strokeDasharray="4 4"
+                    stroke="#cbd5e1"
+                    opacity={0.55}
+                    vertical={false}
+                  />
+
+                  <XAxis
+                    dataKey="name"
+                    tick={{
+                      fontSize: 11,
+                      fill: "#64748b",
+                    }}
+                    axisLine={false}
+                    tickLine={false}
+                    angle={-15}
+                    textAnchor="end"
+                    height={55}
+                  />
+
+                  <YAxis
+                    tick={{
+                      fontSize: 11,
+                      fill: "#64748b",
+                    }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+
+                  <Tooltip
+                    cursor={{
+                      fill: "rgba(37,99,235,0.05)",
+                    }}
+                    contentStyle={{
+                      borderRadius: "14px",
+                      border: "1px solid #e2e8f0",
+                      background: "#ffffff",
+                      boxShadow:
+                        "0 18px 45px rgba(15,23,42,0.14)",
+                      direction: "rtl",
+                    }}
+                    formatter={(value) => [
+                      value,
+                      "تعداد رخداد",
+                    ]}
+                  />
+
+                  <Bar
+                    dataKey="count"
+                    fill="#2563eb"
+                    name="تعداد رخداد"
+                    radius={[10, 10, 3, 3]}
+                    barSize={42}
+                  />
+
+                </BarChart>
+
+              </ResponsiveContainer>
+
+            </PremiumChartCard>
+
+            {/* =================================================
+                SEVERITY CHART
+            ================================================== */}
+
+            <PremiumChartCard
+              title="توزیع شدت رخدادها"
+              description="تحلیل سطح اهمیت و شدت رخدادهای ثبت‌شده"
+              icon={ShieldAlert}
+              accent="red"
+              badge="SEVERITY"
+            >
+
+              <ResponsiveContainer
+                width="100%"
+                height={340}
+              >
+
+                <PieChart>
+
+                  {/* ================================
+                      PIE
+                  ================================= */}
+
+                  <Pie
+                    data={severityData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="45%"
+                    outerRadius={112}
+                    innerRadius={65}
+                    paddingAngle={4}
+                    stroke="#ffffff"
+                    strokeWidth={4}
+                  >
+
+                    {severityData.map(
+                      (entry, index) => (
+                        <Cell
+                          key={`severity-${index}`}
+                          fill={
+                            SEVERITY_COLORS[
+                              entry.originalName
+                            ] ?? "#94a3b8"
+                          }
+                        />
+                      )
+                    )}
+
+                  </Pie>
+
+                  {/* ================================
+                      CENTER TOTAL
+                  ================================= */}
+
+                  <text
+                    x="50%"
+                    y="42%"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    className="fill-slate-900"
+                    style={{
+                      fontSize: "30px",
+                      fontWeight: 900,
+                    }}
+                  >
+                    {totalSeverity}
+                  </text>
+
+                  <text
+                    x="50%"
+                    y="53%"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    className="fill-slate-400"
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    کل رخدادها
+                  </text>
+
+                  {/* ================================
+                      TOOLTIP
+                  ================================= */}
+
+                  <Tooltip
+                    formatter={(value, name) => [
+                      value,
+                      `شدت: ${name}`,
+                    ]}
+                    contentStyle={{
+                      borderRadius: "14px",
+                      border: "1px solid #e2e8f0",
+                      background: "#ffffff",
+                      boxShadow:
+                        "0 18px 45px rgba(15,23,42,0.14)",
+                      direction: "rtl",
+                    }}
+                  />
+
+                  {/* ================================
+                      LEGEND
+                  ================================= */}
+
+                  <Legend
+                    verticalAlign="bottom"
+                    align="center"
+                    height={45}
+                    iconType="circle"
+                    formatter={(value) => (
+                      <span
+                        style={{
+                          color: "#334155",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          marginRight: "4px",
+                        }}
+                      >
+                        {value}
+                      </span>
+                    )}
+                  />
+
+                </PieChart>
+
+              </ResponsiveContainer>
+
+            </PremiumChartCard>
+
+            {/* =================================================
+                AGENCY CHART
+            ================================================== */}
+
+            <div className="xl:col-span-2">
+
+              <PremiumChartCard
+                title="رخدادها بر اساس سازمان"
+                description="توزیع رخدادهای ثبت‌شده میان سازمان‌ها و واحدهای مسئول"
+                icon={Building2}
+                accent="purple"
+                badge="AGENCIES"
+                large
+              >
+                <div className="w-full overflow-x-auto">
+  <div className="min-w-[850px]">
+
+    <div className="grid grid-cols-[220px_1fr] gap-6">
+
+      {/* ================================
+          ORGANIZATION NAMES
+      ================================= */}
+
+      <div className="flex flex-col justify-around py-4">
+
+        {agencyData.map((agency, index) => (
+          <div
+            key={`agency-label-${index}`}
+            className="
+              flex
+              min-h-[38px]
+              items-center
+              rounded-xl
+              border
+              border-slate-100
+              bg-slate-50
+              px-4
+              text-right
+              transition-all
+              duration-300
+              hover:border-slate-200
+              hover:bg-white
+              hover:shadow-sm
+            "
+          >
+            <span
+              className="
+                truncate
+                text-xs
+                font-bold
+                text-slate-700
+              "
+              title={agency.name}
+            >
+              {agency.name}
+            </span>
+          </div>
+        ))}
+
+      </div>
+
+      {/* ================================
+          CHART
+      ================================= */}
+
+      <div className="min-w-0">
+
+        <ResponsiveContainer
+          width="100%"
+          height={390}
+        >
+
+          <BarChart
+            data={agencyData}
+            layout="vertical"
+            margin={{
+              top: 15,
+              right: 20,
+              left: 10,
+              bottom: 15,
+            }}
+          >
+
+            <CartesianGrid
+              strokeDasharray="4 4"
+              stroke="#cbd5e1"
+              opacity={0.55}
+              horizontal={false}
+            />
+
+            <XAxis
+              type="number"
+              tick={{
+                fontSize: 11,
+                fill: "#64748b",
+              }}
+              axisLine={false}
+              tickLine={false}
+            />
+
+            {/* 
+              YAxis فقط برای ساختن ردیف‌هاست.
+              متن را نمایش نمی‌دهیم.
+            */}
+
+            <YAxis
+              type="category"
+              dataKey="name"
+              hide
+            />
+
+            <Tooltip
+              cursor={{
+                fill: "rgba(124,58,237,0.04)",
+              }}
+              contentStyle={{
+                borderRadius: "14px",
+                border: "1px solid #e2e8f0",
+                background: "#ffffff",
+                boxShadow:
+                  "0 18px 45px rgba(15,23,42,0.14)",
+                direction: "rtl",
+              }}
+              formatter={(value) => [
+                value,
+                "تعداد رخداد",
+              ]}
+            />
+
+            <Bar
+              dataKey="count"
+              name="تعداد رخداد"
+              radius={[0, 10, 10, 0]}
+              barSize={27}
+            >
+
+              {agencyData.map((_, index) => (
+                <Cell
+                  key={`agency-${index}`}
+                  fill={
+                    AGENCY_COLORS[
+                      index % AGENCY_COLORS.length
+                    ]
+                  }
+                />
+              ))}
+
+            </Bar>
+
+          </BarChart>
+
+        </ResponsiveContainer>
+
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+                
+
+                    
+
+                  
+
+                
+
+              </PremiumChartCard>
+
+            </div>
+
+          </div>
+        </section>
+
+        {/* =====================================================
+            FOOTER
+        ====================================================== */}
+
+        <footer
+          className="
+            mt-7
+            flex
+            flex-col
+            items-center
+            justify-between
+            gap-3
+            rounded-2xl
+            border
+            border-slate-200
+            bg-white
+            px-5
+            py-4
+            shadow-sm
+            sm:flex-row
+          "
+        >
+
+          <span className="text-xs font-bold text-slate-500">
+            GeoVision Command Center
+          </span>
+
+          <span className="text-xs font-medium text-slate-400">
+            سامانه هوشمند مدیریت رخدادهای شهری
+          </span>
+
+        </footer>
+
+      </div>
+    </main>
+  );
+}
+
+/* =========================================================
+   SECTION TITLE
+========================================================= */
+
+function SectionTitle({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex items-end gap-5">
+
+      <div className="shrink-0">
+
+        <div className="mb-2 flex items-center gap-2">
+
+          <span className="h-2 w-2 rounded-full bg-blue-600 shadow-md shadow-blue-500/40" />
+
+          <span className="text-[10px] font-black tracking-[0.2em] text-blue-600">
+            {eyebrow}
+          </span>
+
+        </div>
+
+        <h2 className="text-xl font-black tracking-tight text-slate-900">
+          {title}
+        </h2>
+
+        <p className="mt-1 text-xs font-medium text-slate-400">
+          {description}
+        </p>
+
+      </div>
+
+      <div className="mb-2 hidden h-px flex-1 bg-gradient-to-l from-transparent via-slate-300 to-transparent md:block" />
+
+    </div>
+  );
+}
+
+/* =========================================================
+   INFO PILL
+========================================================= */
+
+function InfoPill({
+  icon: Icon,
+  text,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  text: string;
+}) {
+  return (
+    <div
+      className="
+        group
+        flex
+        items-center
+        gap-2.5
+        rounded-xl
+        border
+        border-slate-200
+        bg-white
+        px-4
+        py-2.5
+        shadow-sm
+        transition-all
+        duration-300
+        hover:-translate-y-0.5
+        hover:border-blue-200
+        hover:shadow-md
+      "
+    >
+
+      <Icon className="h-4 w-4 text-blue-500 transition-transform group-hover:scale-110" />
+
+      <span className="text-[11px] font-bold text-slate-500">
+        {text}
+      </span>
+
+    </div>
+  );
+}
+
+/* =========================================================
+   PREMIUM STAT CARD
+========================================================= */
+
+function PremiumStatCard({
+  icon: Icon,
+  label,
+  value,
+  description,
+  color,
+  index,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: number;
+  description: string;
+  color: string;
+  index: string;
+}) {
+  const themes: Record<
+    string,
+    {
+      iconBg: string;
+      iconText: string;
+      border: string;
+      accent: string;
+      number: string;
+      glow: string;
+    }
+  > = {
+    blue: {
+      iconBg: "bg-blue-50",
+      iconText: "text-blue-600",
+      border: "border-blue-100",
+      accent:
+        "from-blue-500 via-blue-600 to-cyan-400",
+      number: "text-blue-600",
+      glow: "bg-blue-500/10",
+    },
+
+    amber: {
+      iconBg: "bg-amber-50",
+      iconText: "text-amber-600",
+      border: "border-amber-100",
+      accent:
+        "from-amber-400 via-amber-500 to-yellow-300",
+      number: "text-amber-600",
+      glow: "bg-amber-400/10",
+    },
+
+    orange: {
+      iconBg: "bg-orange-50",
+      iconText: "text-orange-600",
+      border: "border-orange-100",
+      accent:
+        "from-orange-400 via-orange-500 to-amber-400",
+      number: "text-orange-600",
+      glow: "bg-orange-400/10",
+    },
+
+    green: {
+      iconBg: "bg-emerald-50",
+      iconText: "text-emerald-600",
+      border: "border-emerald-100",
+      accent:
+        "from-emerald-400 via-emerald-500 to-cyan-400",
+      number: "text-emerald-600",
+      glow: "bg-emerald-400/10",
+    },
+  };
+
+  const theme = themes[color];
+
+  return (
+    <div
+      className={`
+        group
+        relative
+        min-h-[225px]
+        overflow-hidden
+        rounded-[26px]
+        border
+        ${theme.border}
+        bg-white
+        p-6
+        shadow-[0_8px_30px_rgba(15,23,42,0.07)]
+        transition-all
+        duration-500
+        hover:-translate-y-2
+        hover:shadow-[0_25px_55px_rgba(15,23,42,0.14)]
+      `}
+    >
+
+      {/* Top Accent */}
+
+      <div
+        className={`
+          absolute
+          inset-x-0
+          top-0
+          h-2
+          bg-gradient-to-r
+          ${theme.accent}
+        `}
+      />
+
+      {/* Background Glow */}
+
+      <div
+        className={`
+          pointer-events-none
+          absolute
+          -left-16
+          -top-16
+          h-40
+          w-40
+          rounded-full
+          ${theme.glow}
+          blur-[60px]
+          opacity-60
+          transition-all
+          duration-500
+          group-hover:scale-150
+        `}
+      />
+
+      {/* Index */}
+
+      <div className="absolute left-5 top-5 text-[10px] font-black tracking-[0.2em] text-slate-200">
+        {index}
+      </div>
+
+      <div className="relative">
+
+        {/* Icon */}
+
+        <div
+          className={`
+            flex
+            h-14
+            w-14
+            items-center
+            justify-center
+            rounded-2xl
+            ${theme.iconBg}
+            ${theme.iconText}
+            shadow-sm
+            transition-all
+            duration-500
+            group-hover:scale-110
+            group-hover:-rotate-3
+          `}
+        >
+
+          <Icon className="h-7 w-7" />
+
+        </div>
+
+        {/* Value */}
+
+        <div className="mt-7 flex items-end gap-2">
+
+          <span
+            className="
+              text-5xl
+              font-black
+              leading-none
+              tracking-[-0.06em]
+              text-slate-950
+            "
+          >
+            {value}
+          </span>
+
+          <ArrowUpLeft
+            className={`
+              mb-1
+              h-5
+              w-5
+              ${theme.number}
+              opacity-0
+              transition-all
+              duration-300
+              group-hover:translate-x-1
+              group-hover:-translate-y-1
+              group-hover:opacity-100
+            `}
+          />
+
+        </div>
+
+        {/* Label */}
+
+        <div className="mt-5">
+
+          <h3 className="text-base font-black text-slate-900">
+            {label}
+          </h3>
+
+          <p className="mt-1.5 text-[11px] font-medium text-slate-400">
+            {description}
+          </p>
+
+        </div>
+
+      </div>
+
+      {/* Bottom Accent */}
+
+      <div
+        className={`
+          absolute
+          bottom-0
+          right-0
+          h-1
+          w-0
+          bg-gradient-to-l
+          ${theme.accent}
+          transition-all
+          duration-500
+          group-hover:w-full
+        `}
+      />
+
+    </div>
+  );
+}
+
+/* =========================================================
+   PREMIUM CHART CARD
+========================================================= */
+
+function PremiumChartCard({
+  title,
+  description,
+  icon: Icon,
+  accent,
+  badge,
+  large = false,
+  children,
+}: {
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  accent: string;
+  badge: string;
+  large?: boolean;
+  children: React.ReactNode;
+}) {
+  const accents: Record<
+    string,
+    {
+      iconBg: string;
+      iconText: string;
+      border: string;
+      accent: string;
+    }
+  > = {
+    blue: {
+      iconBg: "bg-blue-50",
+      iconText: "text-blue-600",
+      border: "border-blue-100",
+      accent: "from-blue-500 to-cyan-400",
+    },
+
+    red: {
+      iconBg: "bg-red-50",
+      iconText: "text-red-600",
+      border: "border-red-100",
+      accent: "from-red-500 to-orange-400",
+    },
+
+    purple: {
+      iconBg: "bg-purple-50",
+      iconText: "text-purple-600",
+      border: "border-purple-100",
+      accent: "from-purple-500 to-blue-400",
+    },
+  };
+
+  const theme = accents[accent];
+
+  return (
+    <div
+      className="
+        group
+        relative
+        overflow-hidden
+        rounded-[28px]
+        border
+        border-slate-200
+        bg-white
+        shadow-[0_8px_35px_rgba(15,23,42,0.06)]
+        transition-all
+        duration-500
+        hover:-translate-y-1
+        hover:border-slate-300
+        hover:shadow-[0_22px_55px_rgba(15,23,42,0.11)]
+      "
+    >
+
+      {/* Header */}
+
+      <div
+        className="
+          relative
+          border-b
+          border-slate-100
+          bg-gradient-to-l
+          from-slate-50
+          to-white
+          px-6
+          py-5
+        "
+      >
+
+        <div className="flex items-center justify-between gap-4">
+
+          <div className="flex items-center gap-4">
+
+            <div
+              className={`
+                flex
+                h-12
+                w-12
+                shrink-0
+                items-center
+                justify-center
+                rounded-2xl
+                border
+                ${theme.iconBg}
+                ${theme.iconText}
+                ${theme.border}
+                shadow-sm
+                transition-all
+                duration-300
+                group-hover:scale-105
+              `}
+            >
+
+              <Icon className="h-6 w-6" />
+
+            </div>
+
+            <div>
+
+              <h3 className="text-base font-black text-slate-900">
+                {title}
+              </h3>
+
+              <p className="mt-1 text-[11px] font-medium text-slate-400">
+                {description}
+              </p>
+
+            </div>
+
+          </div>
+
+          <div
+            className="
+              hidden
+              rounded-xl
+              border
+              border-slate-200
+              bg-white
+              px-3
+              py-2
+              text-[9px]
+              font-black
+              tracking-[0.16em]
+              text-slate-400
+              shadow-sm
+              sm:block
+            "
+          >
+            {badge}
+          </div>
+
+        </div>
+
+        {/* Header Accent */}
+
+        <div
+          className={`
+            absolute
+            bottom-0
+            right-0
+            h-[3px]
+            w-20
+            bg-gradient-to-l
+            ${theme.accent}
+          `}
+        />
+
+      </div>
+
+      {/* Chart Body */}
+
+      <div
+        className={`
+          relative
+          p-5
+          md:p-6
+          ${large ? "md:p-7" : ""}
+        `}
+      >
+        {children}
+      </div>
+
+    </div>
+  );
+}
+
+
+
+========================================
+FILE: components/dashboard/OperatorPerformanceDetail.tsx
+========================================
+
+"use client";
+
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  Activity,
+  ArrowRight,
+  BriefcaseBusiness,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  Eye,
+  Gauge,
+  History,
+  MapPin,
+  Phone,
+  Search,
+  Timer,
+  UserRound,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { SeverityBadge } from "@/components/dashboard/CitizenDashboard";
+
+interface PerformanceIncident {
+  id: string;
+  incidentNumber: string;
+  incidentType: string;
+  description: string;
+  severity: string;
+  status: string;
+  operatorStatus: string | null;
+  region: string;
+  assignedAt: string | Date | null;
+  acceptedAt: string | Date | null;
+  enRouteAt: string | Date | null;
+  arrivedAt: string | Date | null;
+  workStartedAt: string | Date | null;
+  completedAt: string | Date | null;
+  completionNote: string | null;
+  createdAt: string | Date;
+  agencies: { agencyName: string }[];
+}
+
+interface PerformanceOperator {
+  id: string;
+  name: string;
+  phone: string;
+  personnelCode: string;
+  agency: string;
+  status: string;
+  vehicle: string | null;
+  isActive: boolean;
+  lastLoginAt: string | Date | null;
+  createdAt: string | Date;
+  incidents: PerformanceIncident[];
+}
+
+type MissionFilter = "ALL" | "ACTIVE" | "COMPLETED";
+
+const OPERATOR_STATUS_LABELS: Record<string, string> = {
+  ASSIGNED: "تخصیص داده شده",
+  ACCEPTED: "پذیرفته شده",
+  EN_ROUTE: "در مسیر",
+  ARRIVED: "رسیده به محل",
+  WORKING: "در حال رسیدگی",
+  COMPLETED: "انجام شده",
+};
+
+export function OperatorPerformanceDetail({
+  operator,
+}: {
+  operator: PerformanceOperator;
+}) {
+  const [filter, setFilter] = useState<MissionFilter>("ALL");
+  const [search, setSearch] = useState("");
+
+  const completed = useMemo(
+    () => operator.incidents.filter(isCompleted),
+    [operator.incidents],
+  );
+  const active = useMemo(
+    () => operator.incidents.filter((incident) => !isCompleted(incident)),
+    [operator.incidents],
+  );
+  const completionDurations = useMemo(
+    () =>
+      completed
+        .map((incident) => durationMs(incident.assignedAt, incident.completedAt))
+        .filter((value): value is number => value !== null),
+    [completed],
+  );
+  const acceptanceDurations = useMemo(
+    () =>
+      operator.incidents
+        .map((incident) => durationMs(incident.assignedAt, incident.acceptedAt))
+        .filter((value): value is number => value !== null),
+    [operator.incidents],
+  );
+  const successRate = operator.incidents.length
+    ? Math.round((completed.length / operator.incidents.length) * 100)
+    : 0;
+
+  const filteredIncidents = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase("fa");
+    return operator.incidents.filter((incident) => {
+      const matchesFilter =
+        filter === "ALL" ||
+        (filter === "COMPLETED" && isCompleted(incident)) ||
+        (filter === "ACTIVE" && !isCompleted(incident));
+      const matchesSearch =
+        !query ||
+        incident.incidentNumber.toLocaleLowerCase("fa").includes(query) ||
+        incident.incidentType.toLocaleLowerCase("fa").includes(query) ||
+        incident.region.toLocaleLowerCase("fa").includes(query);
+      return matchesFilter && matchesSearch;
+    });
+  }, [filter, operator.incidents, search]);
+
+  return (
+    <div className="space-y-5">
+      <Link
+        href="/admin/operators"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowRight className="h-4 w-4" /> بازگشت به مدیریت اپراتورها
+      </Link>
+
+      <Card className="overflow-hidden border-blue-100">
+        <div className="bg-gradient-to-l from-slate-950 via-blue-950 to-blue-800 p-6 text-white">
+          <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
+            <div className="flex items-center gap-4">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
+                <UserRound className="h-8 w-8" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-black">{operator.name}</h1>
+                  <Badge className={operator.isActive ? "bg-emerald-500 hover:bg-emerald-500" : "bg-slate-500 hover:bg-slate-500"}>
+                    {operator.isActive ? "حساب فعال" : "حساب غیرفعال"}
+                  </Badge>
+                </div>
+                <p className="mt-2 text-sm text-blue-100">
+                  {operator.agency} · کد پرسنلی {operator.personnelCode}
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-2 text-sm sm:grid-cols-2 md:text-left">
+              <a className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2" href={`tel:${operator.phone}`}>
+                <Phone className="h-4 w-4" /> {operator.phone}
+              </a>
+              <span className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2">
+                <BriefcaseBusiness className="h-4 w-4" />
+                {operator.vehicle ?? "وسیله ثبت نشده"}
+              </span>
+            </div>
+          </div>
+        </div>
+        <CardContent className="grid gap-4 p-5 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <InfoItem label="وضعیت عملیاتی" value={active.length ? "درگیر مأموریت" : "آماده تخصیص"} />
+          <InfoItem label="آخرین ورود" value={formatDateTime(operator.lastLoginAt)} />
+          <InfoItem label="تاریخ ایجاد حساب" value={formatDate(operator.createdAt)} />
+          <InfoItem label="کل سوابق قابل مشاهده" value={`${operator.incidents.length.toLocaleString("fa-IR")} مأموریت`} />
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <MetricCard icon={BriefcaseBusiness} label="کل مأموریت‌ها" value={operator.incidents.length.toLocaleString("fa-IR")} note={`${active.length.toLocaleString("fa-IR")} مأموریت فعال`} tone="blue" />
+        <MetricCard icon={CheckCircle2} label="مأموریت انجام‌شده" value={completed.length.toLocaleString("fa-IR")} note="سوابق بسته‌شده" tone="emerald" />
+        <MetricCard icon={Gauge} label="نرخ اتمام" value={`${successRate.toLocaleString("fa-IR")}٪`} note="انجام‌شده از کل تخصیص‌ها" tone="violet" />
+        <MetricCard icon={Timer} label="میانگین زمان انجام" value={formatAverage(completionDurations)} note="از تخصیص تا پایان" tone="amber" />
+        <MetricCard icon={Clock3} label="میانگین زمان پذیرش" value={formatAverage(acceptanceDurations)} note="از تخصیص تا پذیرش" tone="slate" />
+      </div>
+
+      <Card>
+        <CardHeader className="space-y-4 border-b">
+          <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-center">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <History className="h-5 w-5 text-blue-600" /> تاریخچه مأموریت‌ها
+              </CardTitle>
+              <p className="mt-1 text-xs text-muted-foreground">
+                زمان‌ها فقط بر اساس رویدادهای واقعاً ثبت‌شده در سامانه محاسبه شده‌اند.
+              </p>
+            </div>
+            <div className="relative w-full lg:w-72">
+              <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="شماره، نوع یا منطقه..." className="h-9 pr-9" />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {([
+              ["ALL", "همه", operator.incidents.length],
+              ["ACTIVE", "فعال", active.length],
+              ["COMPLETED", "انجام‌شده", completed.length],
+            ] as const).map(([value, label, count]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setFilter(value)}
+                className={`rounded-full border px-3 py-1.5 text-xs transition ${filter === value ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-blue-300"}`}
+              >
+                {label} ({count.toLocaleString("fa-IR")})
+              </button>
+            ))}
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {filteredIncidents.length === 0 ? (
+            <div className="py-16 text-center text-sm text-muted-foreground">
+              سابقه‌ای با این فیلتر پیدا نشد.
+            </div>
+          ) : (
+            <div className="divide-y">
+              {filteredIncidents.map((incident) => (
+                <MissionHistoryRow key={incident.id} incident={incident} />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function MissionHistoryRow({ incident }: { incident: PerformanceIncident }) {
+  const completed = isCompleted(incident);
+  const totalDuration = durationMs(incident.assignedAt, incident.completedAt);
+  const workDuration = durationMs(incident.workStartedAt, incident.completedAt);
+  const status = completed ? "COMPLETED" : (incident.operatorStatus ?? "ASSIGNED");
+
+  return (
+    <article className="p-5 hover:bg-slate-50/70">
+      <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-start">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-xs font-bold">{incident.incidentNumber}</span>
+            <SeverityBadge severity={incident.severity} />
+            <Badge variant="outline" className={completed ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-blue-200 bg-blue-50 text-blue-700"}>
+              {OPERATOR_STATUS_LABELS[status] ?? status}
+            </Badge>
+          </div>
+          <h3 className="mt-2 font-bold">{incident.incidentType}</h3>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{incident.region}</span>
+            <span className="flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" />تخصیص: {formatDateTime(incident.assignedAt)}</span>
+            <span>پایان: {formatDateTime(incident.completedAt)}</span>
+          </div>
+          {incident.completionNote && (
+            <p className="mt-3 rounded-lg bg-emerald-50 p-3 text-sm leading-6 text-emerald-950">
+              گزارش پایان: {incident.completionNote}
+            </p>
+          )}
+        </div>
+        <div className="grid shrink-0 gap-2 sm:grid-cols-2 xl:w-[370px]">
+          <DurationBox label="کل زمان مأموریت" value={completed ? formatDuration(totalDuration) : "در حال انجام"} />
+          <DurationBox label="زمان عملیات" value={completed ? formatDuration(workDuration) : "—"} />
+          <div className="sm:col-span-2">
+            <Button asChild variant="outline" size="sm" className="w-full gap-2">
+              <Link href={`/admin/incidents/${incident.id}`}>
+                <Eye className="h-4 w-4" /> مشاهده جزئیات رخداد
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function MetricCard({ icon: Icon, label, value, note, tone }: { icon: typeof Activity; label: string; value: string; note: string; tone: "blue" | "emerald" | "violet" | "amber" | "slate" }) {
+  const tones = {
+    blue: "bg-blue-50 text-blue-700",
+    emerald: "bg-emerald-50 text-emerald-700",
+    violet: "bg-violet-50 text-violet-700",
+    amber: "bg-amber-50 text-amber-700",
+    slate: "bg-slate-100 text-slate-700",
+  };
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-xl ${tones[tone]}`}><Icon className="h-5 w-5" /></div>
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="mt-1 text-xl font-black">{value}</p>
+        <p className="mt-1 text-[11px] text-muted-foreground">{note}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function InfoItem({ label, value }: { label: string; value: string }) {
+  return <div><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 font-semibold">{value}</p></div>;
+}
+
+function DurationBox({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-xl bg-slate-100 p-3"><p className="text-[11px] text-muted-foreground">{label}</p><p className="mt-1 text-sm font-bold">{value}</p></div>;
+}
+
+function isCompleted(incident: PerformanceIncident): boolean {
+  return incident.operatorStatus === "COMPLETED" || incident.status === "RESOLVED";
+}
+
+function durationMs(start: string | Date | null, end: string | Date | null): number | null {
+  if (!start || !end) return null;
+  const value = new Date(end).getTime() - new Date(start).getTime();
+  return Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+function formatAverage(values: number[]): string {
+  if (!values.length) return "داده کافی نیست";
+  return formatDuration(values.reduce((sum, value) => sum + value, 0) / values.length);
+}
+
+function formatDuration(value: number | null): string {
+  if (value === null) return "ثبت نشده";
+  const totalMinutes = Math.max(1, Math.round(value / 60_000));
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  const parts: string[] = [];
+  if (days) parts.push(`${days.toLocaleString("fa-IR")} روز`);
+  if (hours) parts.push(`${hours.toLocaleString("fa-IR")} ساعت`);
+  if (minutes || !parts.length) parts.push(`${minutes.toLocaleString("fa-IR")} دقیقه`);
+  return parts.slice(0, 2).join(" و ");
+}
+
+function formatDateTime(value: string | Date | null): string {
+  return value ? new Date(value).toLocaleString("fa-IR") : "ثبت نشده";
+}
+
+function formatDate(value: string | Date): string {
+  return new Date(value).toLocaleDateString("fa-IR");
+}
+
+
+
+
+========================================
+FILE: services/ai-analyzer.ts
+========================================
+
+import type { AIAnalysisResult, Severity } from "@/types";
+
+const AGENCY_LIST = [
+  "شهرداری",
+  "نهادهای امنیتی",
+  "مخابرات",
+  "آب و فاضلاب",
+  "اداره برق",
+  "گاز",
+  "اورژانس",
+  "پلیس",
+  "آتش نشانی",
+];
+
+const SEVERITY_COLOR: Record<Severity, AIAnalysisResult["color_code"]> = {
+  Low: "Green",
+  Medium: "Yellow",
+  High: "Orange",
+  Critical: "Red",
+};
+
+const SYSTEM_PROMPT = `You are an expert municipal emergency dispatcher.
+Analyze urban incident image and description.
+Return ONLY JSON:
+{
+"incident_type":"",
+"severity":"",
+"color_code":"",
+"assigned_agencies":[],
+"region":"",
+"summary_fa":""
+}
+
+Severity values: Low, Medium, High, Critical
+Color values: Green, Yellow, Orange, Red
+Possible organizations: ${AGENCY_LIST.join(", ")}
+Region should be a Tehran district name in Persian (e.g. منطقه ۱، منطقه ۵).
+summary_fa must be a short Persian sentence describing the incident and recommended action.`;
+
+interface OpenAIResponse {
+  choices?: { message?: { content?: string } }[];
+}
+
+export async function analyzeWithOpenAI(
+  imageBase64: string | null,
+  description: string,
+): Promise<AIAnalysisResult | null> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  const baseUrl = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
+  const model = (imageBase64 ? process.env.VISION_MODEL : process.env.LLM_MODEL) || "gpt-4o-mini";
+  if (!apiKey) {
+  console.error("=== AI ERROR: OPENAI_API_KEY NOT FOUND ===");
+  return null;
+}
+
+  const content: Array<
+    { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }
+  > = [{ type: "text", text: description || "تحلیل این رخداد شهری را انجام دهید." }];
+
+  if (imageBase64) {
+    content.push({
+      type: "image_url",
+      image_url: { url: imageBase64.startsWith("data:") ? imageBase64 : `data:image/jpeg;base64,${imageBase64}` },
+    });
+  }
+
+  try {
+    const res = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content },
+        ],
+        max_tokens: 400,
+        temperature: 0.2,
+      }),
+    });
+
+    if (!res.ok) {
+      console.error("AI provider error:", res.status, await res.text());
+      return null;
+    }
+    const data = (await res.json()) as OpenAIResponse;
+    
+
+
+
+
+    const raw = data.choices?.[0]?.message?.content;
+    if (!raw) return null;
+    const parsed = extractJson(raw);
+    return parsed ? normalizeAnalysis(parsed) : null;
+  } catch (e) {
+    console.error("AI provider request failed:", e);
+    return null;
+  }
+}
+
+function extractJson(raw: string): Record<string, unknown> | null {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        return JSON.parse(match[0]);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+}
+
+function normalizeAnalysis(obj: Record<string, unknown>): AIAnalysisResult {
+  const severity = (obj.severity as string) as Severity;
+  const valid: Severity[] = ["Low", "Medium", "High", "Critical"];
+  const sev = valid.includes(severity) ? severity : "Medium";
+  return {
+    incident_type: (obj.incident_type as string) || "نامشخص",
+    severity: sev,
+    color_code: SEVERITY_COLOR[sev],
+    assigned_agencies: Array.isArray(obj.assigned_agencies)
+      ? (obj.assigned_agencies as string[]).filter((a) => AGENCY_LIST.includes(a))
+      : [],
+    region: (obj.region as string) || "نامشخص",
+    summary_fa: (obj.summary_fa as string) || "تحلیل خودکار انجام شد.",
+  };
+}
+
+// ---- Persian keyword-based fallback analyzer ----
+
+interface KeywordRule {
+  keywords: string[];
+  type: string;
+  severity: Severity;
+  agencies: string[];
+  summary: (desc: string) => string;
+}
+
+const RULES: KeywordRule[] = [
+  {
+    keywords: ["گاز", "نشتی", "بوی گاز", "لوله گاز"],
+    type: "نشتی گاز",
+    severity: "Critical",
+    agencies: ["گاز", "آتش نشانی", "اورژانس"],
+    summary: () => "احتمال نشتی گاز گزارش شده. تیم اورژانس گاز و آتش نشانی فورا اعزام شوند.",
+  },
+  {
+    keywords: ["آتش", "حریق", "شعله", "سوختن", "دود", "سوختگی"],
+    type: "حریق",
+    severity: "Critical",
+    agencies: ["آتش نشانی", "اورژانس", "پلیس"],
+    summary: () => "گزارش حریق. آتش نشانی و اورژانس با اولویت بالا اعزام شوند.",
+  },
+  {
+    keywords: ["تصادف", "حادثه", "ضربه", "تصادف خودرو", "تصادف کرده"],
+    type: "تصادف",
+    severity: "High",
+    agencies: ["پلیس", "اورژانس", "نهادهای امنیتی"],
+    summary: () => "تصادف رخ داده. پلیس و اورژانس برای کنترل صحنه اعزام شوند.",
+  },
+  {
+    keywords: ["چاله", "گودال", "چال", "سوراخ", "فرورفتگی", "آسفالت"],
+    type: "خرابی آسفالت",
+    severity: "Medium",
+    agencies: ["شهرداری"],
+    summary: () => "چاله یا خرابی آسفالت در مسیر. تیم شهرداری برای ترمیم اعزام شود.",
+  },
+  {
+    keywords: ["آب", "نشتی آب", "لوله آب", "سیل", "آب گرفتگی", "سیلاب"],
+    type: "مشکل آب و فاضلاب",
+    severity: "High",
+    agencies: ["آب و فاضلاب", "شهرداری"],
+    summary: () => "مشکل شبکه آب و فاضلاب. اداره آب برای رفع نشتی اعزام شود.",
+  },
+  {
+    keywords: ["برق", "قطع برق", "سیم", "تیر برق", "اتک برق", "اضطراری"],
+    type: "مشکل برق",
+    severity: "High",
+    agencies: ["اداره برق", "شهرداری"],
+    summary: () => "مشکل شبکه برق. اداره برق برای بررسی و رفع خطر اعزام شود.",
+  },
+  {
+    keywords: ["سیم دزدیده", "سرقت", "دزدی", "یاغی"],
+    type: "سرقت",
+    severity: "Medium",
+    agencies: ["پلیس", "نهادهای امنیتی"],
+    summary: () => "گزارش سرقت. پلیس برای بررسی اعزام شود.",
+  },
+  {
+    keywords: ["زباله", "پسماند", "کثیف", "آلودگی", "زباله دان"],
+    type: "مشکل پسماند",
+    severity: "Low",
+    agencies: ["شهرداری"],
+    summary: () => "انباشت زباله. شهرداری برای جمع‌آوری اعزام شود.",
+  },
+  {
+    keywords: ["چراغ", "نور", "روشنایی", "چراغ خیابان"],
+    type: "خرابی چراغ",
+    severity: "Low",
+    agencies: ["شهرداری", "اداره برق"],
+    summary: () => "خرابی چراغ خیابان. شهرداری برای تعمیر اعزام شود.",
+  },
+  {
+    keywords: ["درخت", "شاخه", "افتاد", "درخت افتاده"],
+    type: "خطر درخت",
+    severity: "Medium",
+    agencies: ["شهرداری", "اورژانس"],
+    summary: () => "درخت یا شاخه خطرناک. شهرداری برای پاکسازی اعزام شود.",
+  },
+  {
+  keywords: ["درگیری", "دعوا", "نزاع", "ناآرامی", "اغتشاش", "درگیری خیابانی"],
+  type: "رخداد امنیتی",
+  severity: "High",
+  agencies: ["نهادهای امنیتی", "پلیس", "اورژانس"],
+  summary: () => "رخداد امنیتی گزارش شده. نیروهای امنیتی و پلیس برای بررسی و کنترل وضعیت اعزام شوند.",
+ },
+ {
+  keywords: ["انفجار", "صدای انفجار", "منفجر", "ترکش", "انفجار شدید"],
+  type: "انفجار",
+  severity: "Critical",
+  agencies: ["نهادهای امنیتی", "آتش نشانی", "اورژانس", "پلیس"],
+  summary: () => "انفجار گزارش شده. نیروهای امنیتی، آتش‌نشانی و اورژانس با اولویت بسیار بالا اعزام شوند.",
+ },
+ {
+  keywords: ["موشک", "بمب", "اصابت موشک", "اصابت بمب", "حمله موشکی", "دود غلیظ", "محل اصابت"],
+  type: "محل اصابت موشک یا بمب",
+  severity: "Critical",
+  agencies: ["نهادهای امنیتی", "آتش نشانی", "اورژانس", "پلیس"],
+  summary: () => "محل اصابت موشک یا بمب گزارش شده. نیروهای امنیتی و امدادی برای ایمن‌سازی و امدادرسانی اعزام شوند.",
+ },
+ {
+  keywords: ["بسته مشکوک", "شیء مشکوک", "خودرو مشکوک", "کیف مشکوک", "چمدان مشکوک", "مورد مشکوک"],
+  type: "موارد مشکوک",
+  severity: "High",
+  agencies: ["نهادهای امنیتی", "پلیس"],
+  summary: () => "مورد مشکوک گزارش شده. نیروهای امنیتی برای بررسی و ایمن‌سازی محل اعزام شوند.",
+ },
+];
+
+const TEHRAN_REGIONS = [
+  "منطقه ۱", "منطقه ۲", "منطقه ۳", "منطقه ۴", "منطقه ۵",
+  "منطقه ۶", "منطقه ۷", "منطقه ۸", "منطقه ۹", "منطقه ۱۰",
+  "منطقه ۱۱", "منطقه ۱۲", "منطقه ۱۳", "منطقه ۱۴", "منطقه ۱۵",
+  "منطقه ۱۶", "منطقه ۱۷", "منطقه ۱۸", "منطقه ۱۹", "منطقه ۲۰",
+  "منطقه ۲۱", "منطقه ۲۲",
+];
+
+export function analyzeWithFallback(
+  description: string,
+  _imageBase64: string | null,
+): AIAnalysisResult {
+  const text = description.toLowerCase();
+  const matched = RULES.find((r) => r.keywords.some((k) => text.includes(k.toLowerCase())));
+
+  const region = TEHRAN_REGIONS[Math.floor(Math.random() * TEHRAN_REGIONS.length)];
+
+  if (matched) {
+    return {
+      incident_type: matched.type,
+      severity: matched.severity,
+      color_code: SEVERITY_COLOR[matched.severity],
+      assigned_agencies: matched.agencies,
+      region,
+      summary_fa: matched.summary(description),
+    };
+  }
+
+  // Default: general municipal issue
+  const severity: Severity = "Medium";
+  return {
+    incident_type: "مشکل عمومی شهری",
+    severity,
+    color_code: SEVERITY_COLOR[severity],
+    assigned_agencies: ["شهرداری"],
+    region,
+    summary_fa: "رخداد عمومی شهری گزارش شد. شهرداری برای بررسی اعزام شود.",
+  };
+}
+
+export async function analyzeIncident(
+  imageBase64: string | null,
+  description: string,
+): Promise<{ result: AIAnalysisResult; source: "openai" | "fallback" }> {
+
+
+
+
+
+  const openaiResult = await analyzeWithOpenAI(imageBase64, description);
+  if (openaiResult) {
+    return { result: openaiResult, source: "openai" };
+  }
+  return { result: analyzeWithFallback(description, imageBase64), source: "fallback" };
+}
+
+
+
+
+========================================
+FILE: app/api/analyze-incident/route.ts
+========================================
+
+import { NextResponse } from "next/server";
+import { analyzeIncident } from "@/services/ai-analyzer";
+import { requireRole } from "@/lib/auth";
+import { z } from "zod";
+
+const Schema = z.object({
+  imageBase64: z.string().max(18_000_000, "حجم تصویر برای تحلیل بیش از حد مجاز است").nullable().optional(),
+  description: z.string().min(3, "توضیحات حداقل ۳ کاراکتر").max(2000, "توضیحات بیش از حد طولانی است"),
+});
+
+export async function POST(req: Request) {
+  try {
+    await requireRole("CITIZEN");
+    const body = await req.json();
+    const parsed = Schema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "اطلاعات نامعتبر" }, { status: 400 });
+    }
+    const { imageBase64, description } = parsed.data;
+    const { result, source } = await analyzeIncident(imageBase64 ?? null, description);
+    return NextResponse.json({ analysis: result, source });
+  } catch (e) {
+    if (e instanceof Error && e.message === "UNAUTHORIZED") {
+      return NextResponse.json({ error: "احراز هویت لازم است" }, { status: 401 });
+    }
+    if (e instanceof Error && e.message === "FORBIDDEN") {
+      return NextResponse.json({ error: "دسترسی مجاز نیست" }, { status: 403 });
+    }
+    return NextResponse.json({ error: "خطای سرور در تحلیل رخداد" }, { status: 500 });
+  }
+}
+
+
+
+
+========================================
+FILE: .env.example
+========================================
+
+# Database (SQLite)
+DATABASE_URL="file:./dev.db"
+
+# Auth
+JWT_SECRET="change-this-to-a-random-secret-of-at-least-32-characters"
+
+# MVP demo mode returns the OTP in the UI. Change this when an SMS provider is connected.
+OTP_MODE="demo"
+
+OPENAI_API_KEY=""
+
+OPENAI_BASE_URL=https://api.avalai.ir/v1
+
+VISION_MODEL=gpt-4o-mini
+
+LLM_MODEL=gpt-4o-mini
+
+# Neshan Map API (replace with your real key)
+NESHAN_API_KEY=""
+
+# Public HTTPS address after deployment (without a trailing slash)
+NEXT_PUBLIC_APP_URL="https://example.com"
+
+# Neshan Map SDK Key (client-side, for interactive map display)
+NEXT_PUBLIC_NESHAN_MAP_KEY=""
+
+

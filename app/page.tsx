@@ -328,7 +328,7 @@ export default function Home() {
                   </Button>
                 </Link>
 
-                <Link href="https://geovision.hosha.ir/dashboard/">
+                <Link href="https://geovision.hosha.ir/project-vision/">
                   <Button
                     size="lg"
                     variant="outline"

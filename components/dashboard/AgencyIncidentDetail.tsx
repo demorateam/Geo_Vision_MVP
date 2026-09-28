@@ -15,6 +15,7 @@ import {
   Route,
   User,
   UserRoundCheck,
+  X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -148,6 +149,9 @@ interface AgencyIncidentDetailProps {
   backHref?: string;
   backLabel?: string;
   showRouting?: boolean;
+  // "admin": بازطراحی UI مخصوص پنل مدیریتی (فقط UI/Layout؛ endpoint‌ها و منطق فرقی نمی‌کنند).
+  // پیش‌فرض "default" است تا رفتار فعلی صفحه agency و هر جای دیگری که این prop را پاس نمی‌دهد، دقیقاً بدون تغییر بماند.
+  variant?: "default" | "admin";
 }
 
 export function AgencyIncidentDetail({
@@ -155,7 +159,9 @@ export function AgencyIncidentDetail({
   backHref = "/agency/incidents",
   backLabel = "بازگشت به فهرست رخدادها",
   showRouting = true,
+  variant = "default",
 }: AgencyIncidentDetailProps) {
+  const isAdmin = variant === "admin";
   const [status, setStatus] = useState(incident.status);
   const [updating, setUpdating] = useState(false);
   const [routing, setRouting] = useState(false);
@@ -180,7 +186,8 @@ export function AgencyIncidentDetail({
             ? 0.34
             : 0.04,
   );
-  const [lastLocationUpdate, setLastLocationUpdate] = useState(new Date());
+    const [lastLocationUpdate, setLastLocationUpdate] = useState(new Date());
+    const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
 
   const startPosition = useMemo(() => {
     const seed = hashText(incident.id);
@@ -362,69 +369,153 @@ export function AgencyIncidentDetail({
         </div>
       </div>
 
-      <Card className="overflow-hidden">
-        <img
-          src={incident.imageUrl}
-          alt="تصویر رخداد"
-          className="h-64 w-full object-cover md:h-80"
-        />
-      </Card>
+      {isAdmin ? (
+        <>
+          {/* باکس یکپارچه تصویر + جزئیات رخداد (فقط پنل مدیریتی) */}
+          <Card className="overflow-hidden">
+            <div className="grid md:grid-cols-2">
+              <div
+                className="h-64 w-full cursor-zoom-in md:h-auto"
+                onClick={() => setImagePreviewOpen(true)}
+              >
+                <img
+                  src={incident.imageUrl}
+                  alt="تصویر رخداد"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div className="flex flex-col gap-4 border-t border-slate-100 p-5 md:border-t-0 md:border-r md:p-6">
+                <h2 className="text-base font-bold text-slate-900">
+                  جزئیات رخداد
+                </h2>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <InfoRow label="نوع رخداد" value={incident.incidentType} />
+                  <InfoRow label="منطقه" value={incident.region} />
+                </div>
+                {incident.aiSummary && (
+                  <div className="rounded-lg border border-blue-100 bg-blue-50/70 p-3">
+                    <p className="mb-1 text-xs font-medium text-blue-700">
+                      خلاصه هوش مصنوعی
+                    </p>
+                    <p className="text-sm text-slate-700">
+                      {incident.aiSummary}
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">
+                    سازمان‌های مسئول
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {incident.agencies.map((agency) => (
+                      <Badge key={agency.agencyName} variant="outline">
+                        {agency.agencyName}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">جزئیات رخداد</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <InfoRow label="نوع رخداد" value={incident.incidentType} />
-              <InfoRow label="منطقه" value={incident.region} />
-            </div>
-            <div>
-              <p className="mb-1 text-xs font-medium text-muted-foreground">
-                توضیحات گزارش‌دهنده
-              </p>
-              <p className="text-sm leading-7">{incident.description}</p>
-            </div>
-            {incident.aiSummary && (
-              <div className="rounded-lg bg-slate-50 p-3">
+          {/* گزارش‌دهنده + توضیحات کاربر در یک باکس خاکستری کمرنگ */}
+          <Card className="border-slate-100 bg-slate-50/70">
+            <CardHeader>
+              <CardTitle className="text-base">گزارش‌دهنده</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">نام گزارش‌دهنده:</span>
+                <span className="font-medium text-slate-900">
+                  {incident.reporter.name}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">شماره تماس:</span>
+                <span className="font-medium text-slate-900">
+                  {incident.reporter.phone}
+                </span>
+              </div>
+              <div>
                 <p className="mb-1 text-xs font-medium text-muted-foreground">
-                  خلاصه هوش مصنوعی
+                  توضیحات کاربر
                 </p>
-                <p className="text-sm">{incident.aiSummary}</p>
+                <p className="text-sm leading-7 text-slate-700">
+                  {incident.description}
+                </p>
               </div>
-            )}
-            <div>
-              <p className="mb-1 text-xs font-medium text-muted-foreground">
-                سازمان‌های مسئول
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {incident.agencies.map((agency) => (
-                  <Badge key={agency.agencyName} variant="outline">
-                    {agency.agencyName}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </>
+      ) : (
+        <>
+          <Card className="overflow-hidden">
+            <img
+              src={incident.imageUrl}
+              alt="تصویر رخداد"
+              className="h-64 w-full object-cover md:h-80"
+            />
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">گزارش‌دهنده</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              {incident.reporter.name}
-            </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Phone className="h-4 w-4" />
-              {incident.reporter.phone}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle className="text-base">جزئیات رخداد</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <InfoRow label="نوع رخداد" value={incident.incidentType} />
+                  <InfoRow label="منطقه" value={incident.region} />
+                </div>
+                <div>
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">
+                    توضیحات گزارش‌دهنده
+                  </p>
+                  <p className="text-sm leading-7">{incident.description}</p>
+                </div>
+                {incident.aiSummary && (
+                  <div className="rounded-lg bg-slate-50 p-3">
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">
+                      خلاصه هوش مصنوعی
+                    </p>
+                    <p className="text-sm">{incident.aiSummary}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">
+                    سازمان‌های مسئول
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {incident.agencies.map((agency) => (
+                      <Badge key={agency.agencyName} variant="outline">
+                        {agency.agencyName}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">گزارش‌دهنده</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  {incident.reporter.name}
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Phone className="h-4 w-4" />
+                  {incident.reporter.phone}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
 
       <Card className="border-blue-100 bg-gradient-to-br from-white to-blue-50/40">
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -596,34 +687,72 @@ export function AgencyIncidentDetail({
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardHeader
+          className={
+            isAdmin
+              ? undefined
+              : "flex flex-row items-center justify-between space-y-0"
+          }
+        >
           <CardTitle className="text-base">وضعیت رسیدگی</CardTitle>
-          <Select
-            value={status}
-            onValueChange={updateStatus}
-            disabled={updating}
-          >
-            <SelectTrigger className="h-9 w-40 text-sm">
-              {updating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <SelectValue />
-              )}
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="PENDING">{statusLabels.PENDING}</SelectItem>
-              <SelectItem value="IN_PROGRESS">
-                {statusLabels.IN_PROGRESS}
-              </SelectItem>
-              <SelectItem value="RESOLVED">{statusLabels.RESOLVED}</SelectItem>
-            </SelectContent>
-          </Select>
+          {!isAdmin && (
+            <Select
+              value={status}
+              onValueChange={updateStatus}
+              disabled={updating}
+            >
+              <SelectTrigger className="h-9 w-40 text-sm">
+                {updating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <SelectValue />
+                )}
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="PENDING">{statusLabels.PENDING}</SelectItem>
+                <SelectItem value="IN_PROGRESS">
+                  {statusLabels.IN_PROGRESS}
+                </SelectItem>
+                <SelectItem value="RESOLVED">
+                  {statusLabels.RESOLVED}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          )}
         </CardHeader>
         <CardContent>
           {incident.statusHistory.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               هنوز تاریخچه‌ای ثبت نشده است
             </p>
+          ) : isAdmin ? (
+            <div className="space-y-0">
+              {incident.statusHistory.map((history, index) => {
+                const isLast = index === incident.statusHistory.length - 1;
+                return (
+                  <div key={history.id} className="relative flex gap-3 pb-6">
+                    {!isLast && (
+                      <span className="absolute right-[5px] top-3 h-full w-px bg-slate-200" />
+                    )}
+                    <span
+                      className={`relative z-10 mt-1 h-3 w-3 shrink-0 rounded-full border-2 bg-white ${
+                        isLast
+                          ? "border-blue-600"
+                          : "border-slate-300"
+                      }`}
+                    />
+                    <div className="pb-1">
+                      <p className="text-sm font-medium text-slate-900">
+                        {statusLabels[history.newStatus]}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {new Date(history.createdAt).toLocaleString("fa-IR")}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           ) : (
             <div className="space-y-3">
               {incident.statusHistory.map((history) => (
@@ -647,6 +776,27 @@ export function AgencyIncidentDetail({
           )}
         </CardContent>
       </Card>
+            {isAdmin && imagePreviewOpen && (
+        <div
+          className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setImagePreviewOpen(false)}
+        >
+          <button
+            type="button"
+            aria-label="بستن تصویر"
+            className="absolute left-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+            onClick={() => setImagePreviewOpen(false)}
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <img
+            src={incident.imageUrl}
+            alt="تصویر رخداد"
+            className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }

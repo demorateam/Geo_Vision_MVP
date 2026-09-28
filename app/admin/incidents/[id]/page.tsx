@@ -35,6 +35,7 @@ export default async function AdminIncidentDetailPage({
         backHref="/admin/incidents"
         backLabel="بازگشت به مدیریت رخدادها"
         showRouting={false}
+        variant="admin"
       />
     </DashboardShell>
   );

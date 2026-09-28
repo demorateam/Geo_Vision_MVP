@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -22,6 +22,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { SeverityBadge } from "@/components/dashboard/CitizenDashboard";
 import { STATUS_LABELS } from "@/types";
 
@@ -45,7 +54,10 @@ interface Incident {
   } | null;
 }
 
-type SortKey = "incidentNumber" | "createdAt" | "severity" | "region";
+// فقط تاریخ و شدت قابل Sort هستند
+type SortKey = "createdAt" | "severity";
+
+const PAGE_SIZE = 20;
 
 const OPERATOR_STATE = {
   UNASSIGNED: {
@@ -64,14 +76,37 @@ const OPERATOR_STATE = {
   },
 } as const;
 
+// شماره‌گذاری صفحات با نقاط سه‌گانه برای تعداد صفحات زیاد
+function getPageNumbers(current: number, total: number): (number | "ellipsis")[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  const pages: (number | "ellipsis")[] = [1];
+  if (current > 3) pages.push("ellipsis");
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (current < total - 2) pages.push("ellipsis");
+  pages.push(total);
+  return pages;
+}
+
 export function IncidentsTable({ incidents }: { incidents: Incident[] }) {
   const [rows, setRows] = useState(incidents);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [severityFilter, setSeverityFilter] = useState<string>("ALL");
+  const [regionFilter, setRegionFilter] = useState<string>("ALL");
   const [sortKey, setSortKey] = useState<SortKey>("createdAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // منطقه‌های شهری از همان داده رخدادها (data source واقعی پروژه) ساخته می‌شود
+  const regionOptions = useMemo(
+    () => Array.from(new Set(rows.map((incident) => incident.region))).sort(),
+    [rows],
+  );
 
   const filtered = useMemo(() => {
     let result = [...rows];
@@ -88,6 +123,9 @@ export function IncidentsTable({ incidents }: { incidents: Incident[] }) {
       );
     }
 
+    if (regionFilter !== "ALL") {
+      result = result.filter((incident) => incident.region === regionFilter);
+    }
     if (statusFilter !== "ALL") {
       result = result.filter((incident) => incident.status === statusFilter);
     }
@@ -103,7 +141,7 @@ export function IncidentsTable({ incidents }: { incidents: Incident[] }) {
         comparison =
           new Date(first.createdAt).getTime() -
           new Date(second.createdAt).getTime();
-      } else if (sortKey === "severity") {
+      } else {
         const order: Record<string, number> = {
           Low: 1,
           Medium: 2,
@@ -112,16 +150,31 @@ export function IncidentsTable({ incidents }: { incidents: Incident[] }) {
         };
         comparison =
           (order[first.severity] ?? 0) - (order[second.severity] ?? 0);
-      } else {
-        comparison = String(first[sortKey]).localeCompare(
-          String(second[sortKey]),
-        );
       }
       return sortDir === "asc" ? comparison : -comparison;
     });
 
     return result;
-  }, [rows, search, statusFilter, severityFilter, sortKey, sortDir]);
+  }, [rows, search, regionFilter, statusFilter, severityFilter, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+
+  // Data → Filter → Sort → Pagination → Render
+  const paginated = useMemo(
+    () =>
+      filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filtered, currentPage],
+  );
+
+  // با تغییر فیلتر یا Sort، به صفحه اول برگرد
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, regionFilter, statusFilter, severityFilter, sortKey, sortDir]);
+
+  // اگر صفحه فعلی بعد از تغییر داده دیگر معتبر نبود
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -175,6 +228,19 @@ export function IncidentsTable({ incidents }: { incidents: Incident[] }) {
             className="pr-9"
           />
         </div>
+        <Select value={regionFilter} onValueChange={setRegionFilter}>
+          <SelectTrigger className="w-full sm:w-40">
+            <SelectValue placeholder="منطقه شهری" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">همه مناطق</SelectItem>
+            {regionOptions.map((region) => (
+              <SelectItem key={region} value={region}>
+                {region}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-full sm:w-40">
             <SelectValue placeholder="وضعیت" />
@@ -208,14 +274,7 @@ export function IncidentsTable({ incidents }: { incidents: Incident[] }) {
             <table className="w-full min-w-[1050px] text-sm">
               <thead className="border-b bg-slate-50 text-right">
                 <tr>
-                  <th
-                    className="cursor-pointer px-4 py-3 font-medium"
-                    onClick={() => toggleSort("incidentNumber")}
-                  >
-                    <span className="flex items-center gap-1">
-                      شماره <ArrowUpDown className="h-3 w-3" />
-                    </span>
-                  </th>
+                  <th className="px-4 py-3 font-medium">شماره</th>
                   <th
                     className="cursor-pointer px-4 py-3 font-medium"
                     onClick={() => toggleSort("createdAt")}
@@ -233,14 +292,7 @@ export function IncidentsTable({ incidents }: { incidents: Incident[] }) {
                       شدت <ArrowUpDown className="h-3 w-3" />
                     </span>
                   </th>
-                  <th
-                    className="cursor-pointer px-4 py-3 font-medium"
-                    onClick={() => toggleSort("region")}
-                  >
-                    <span className="flex items-center gap-1">
-                      منطقه <ArrowUpDown className="h-3 w-3" />
-                    </span>
-                  </th>
+                  <th className="px-4 py-3 font-medium">منطقه</th>
                   <th className="px-4 py-3 font-medium">سازمان</th>
                   <th className="px-4 py-3 font-medium">وضعیت</th>
                   <th className="px-4 py-3 font-medium">عملیات</th>
@@ -257,7 +309,7 @@ export function IncidentsTable({ incidents }: { incidents: Incident[] }) {
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((incident) => {
+                  paginated.map((incident) => {
                     const operatorState = incident.assignedOperator
                       ? incident.status === "RESOLVED"
                         ? OPERATOR_STATE.RESOLVED
@@ -356,6 +408,59 @@ export function IncidentsTable({ incidents }: { incidents: Incident[] }) {
           </div>
         </CardContent>
       </Card>
+
+      {filtered.length > PAGE_SIZE && (
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (currentPage > 1) setCurrentPage(currentPage - 1);
+                }}
+                className={
+                  currentPage === 1 ? "pointer-events-none opacity-50" : ""
+                }
+              />
+            </PaginationItem>
+            {getPageNumbers(currentPage, totalPages).map((page, idx) =>
+              page === "ellipsis" ? (
+                <PaginationItem key={`ellipsis-${idx}`}>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              ) : (
+                <PaginationItem key={page}>
+                  <PaginationLink
+                    href="#"
+                    isActive={page === currentPage}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setCurrentPage(page);
+                    }}
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+              ),
+            )}
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                }}
+                className={
+                  currentPage === totalPages
+                    ? "pointer-events-none opacity-50"
+                    : ""
+                }
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
     </div>
   );
 }
